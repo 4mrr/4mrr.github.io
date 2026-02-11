@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4mr — Red Team Operator | Offensive Security Consultant</title>
+    <meta name="description" content="Amr En-Niari — Red Team Operator & Offensive Security Consultant. Penetration Testing, Active Directory Exploitation, Malware Development, Red Team Operations.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #06060b;
+            --bg-secondary: #0c0c14;
+            --bg-card: #111119;
+            --bg-card-hover: #17171f;
+            --accent: #00ffaa;
+            --accent-dim: rgba(0,255,170,0.08);
+            --accent-glow: rgba(0,255,170,0.15);
+            --accent-mid: rgba(0,255,170,0.4);
+            --red: #ff2d55;
+            --orange: #ff8c00;
+            --blue: #00aaff;
+            --yellow: #ffd60a;
+            --text: #e4e4ee;
+            --text-dim: #6e6e82;
+            --text-mid: #9e9eb2;
+            --border: #1e1e2e;
+            --border-light: #2a2a3e;
+            --font-mono: 'JetBrains Mono', monospace;
+            --font-display: 'Syne', sans-serif;
+            --font-body: 'Outfit', sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        ::selection { background: var(--accent); color: var(--bg); }
+
+        html {
+            scroll-behavior: smooth;
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent) var(--bg);
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-body);
+            overflow-x: hidden;
+            line-height: 1.7;
+        }
+
+        /* ========== NOISE + GRID ========== */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        .grid-bg {
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(30,30,46,0.4) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(30,30,46,0.4) 1px, transparent 1px);
+            background-size: 80px 80px;
+            opacity: 0.06;
+            z-index: -1;
+        }
+
+        /* ========== SCANLINE ========== */
+        .scanline {
+            position: fixed;
+            left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-mid), transparent);
+            z-index: 9998;
+            animation: scan 6s linear infinite;
+            opacity: 0.25;
+        }
+        @keyframes scan { 0% { top: -2px; } 100% { top: 100vh; } }
+
+        /* ========== GLOW ORB ========== */
+        .glow-orb {
+            position: fixed;
+            width: 500px; height: 500px;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--accent-glow), transparent 70%);
+            pointer-events: none;
+            z-index: -1;
+            top: 20%; left: -10%;
+            animation: orbFloat 12s ease-in-out infinite alternate;
+        }
+        .glow-orb-2 {
+            position: fixed;
+            width: 400px; height: 400px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,45,85,0.06), transparent 70%);
+            pointer-events: none;
+            z-index: -1;
+            bottom: 10%; right: -5%;
+            animation: orbFloat2 15s ease-in-out infinite alternate;
+        }
+        @keyframes orbFloat { 0% { transform: translate(0,0); } 100% { transform: translate(60px, 40px); } }
+        @keyframes orbFloat2 { 0% { transform: translate(0,0); } 100% { transform: translate(-40px, -30px); } }
+
+        /* ========== ANIMATIONS ========== */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(25px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes blink { 0%,50%{opacity:1}51%,100%{opacity:0} }
+        @keyframes typeWidth { from { width: 0; } to { width: 100%; } }
+        @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 var(--accent-glow)}50%{box-shadow:0 0 20px 5px var(--accent-glow)} }
+
+        .fade-section {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .fade-section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ========== NAV ========== */
+        nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 1000;
+            padding: 1rem 2.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(20px);
+            background: rgba(6,6,11,0.88);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 1.3rem;
+            color: var(--accent);
+            text-decoration: none;
+            letter-spacing: -0.5px;
+        }
+        .logo .dim { color: var(--text-dim); font-weight: 400; }
+
+        .nav-links { display: flex; gap: 2rem; list-style: none; }
+        .nav-links a {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: color 0.3s;
+            position: relative;
+        }
+        .nav-links a:hover { color: var(--accent); }
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px; left: 0;
+            width: 0; height: 1px;
+            background: var(--accent);
+            transition: width 0.3s;
+        }
+        .nav-links a:hover::after { width: 100%; }
+
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 5px;
+        }
+        .hamburger span {
+            width: 24px; height: 2px;
+            background: var(--text);
+            transition: all 0.3s;
+        }
+
+        /* ========== HERO ========== */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 6rem 2.5rem 3rem;
+            position: relative;
+        }
+
+        .hero-content { max-width: 700px; }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--accent);
+            padding: 0.4rem 1rem;
+            border: 1px solid rgba(0,255,170,0.2);
+            background: var(--accent-dim);
+            margin-bottom: 1.8rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            opacity: 0;
+            animation: fadeUp 0.5s 0.2s forwards;
+        }
+        .hero-badge .dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: pulse 2s infinite;
+        }
+
+        .hero h1 {
+            font-family: var(--font-display);
+            font-size: clamp(3rem, 7vw, 5.5rem);
+            font-weight: 800;
+            line-height: 1.05;
+            letter-spacing: -2px;
+            margin-bottom: 1.2rem;
+            opacity: 0;
+            animation: fadeUp 0.6s 0.4s forwards;
+        }
+        .hero h1 .accent { color: var(--accent); }
+        .hero h1 .outline {
+            -webkit-text-stroke: 1.5px var(--text);
+            color: transparent;
+        }
+
+        .hero-sub {
+            font-size: 1.15rem;
+            color: var(--text-dim);
+            max-width: 550px;
+            line-height: 1.8;
+            opacity: 0;
+            animation: fadeUp 0.6s 0.6s forwards;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2.5rem;
+            flex-wrap: wrap;
+            opacity: 0;
+            animation: fadeUp 0.6s 0.8s forwards;
+        }
+
+        .btn {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            padding: 0.85rem 2rem;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            background: transparent;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--accent);
+            transform: translateX(-101%);
+            transition: transform 0.3s;
+            z-index: -1;
+        }
+        .btn:hover::before { transform: translateX(0); }
+        .btn:hover { color: var(--bg); }
+
+        .btn-outline {
+            border-color: var(--border-light);
+            color: var(--text-mid);
+        }
+        .btn-outline::before { background: var(--bg-card-hover); }
+        .btn-outline:hover { color: var(--text); border-color: var(--text-dim); }
+
+        /* Terminal */
+        .hero-terminal {
+            position: absolute;
+            right: 2.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 440px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            opacity: 0;
+            animation: fadeUp 0.8s 1s forwards;
+        }
+        .term-bar {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 11px 15px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+        }
+        .term-dot { width: 11px; height: 11px; border-radius: 50%; }
+        .term-dot:nth-child(1) { background: var(--red); }
+        .term-dot:nth-child(2) { background: var(--yellow); }
+        .term-dot:nth-child(3) { background: var(--accent); }
+        .term-title {
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            color: var(--text-dim);
+            margin-left: auto;
+        }
+        .term-body {
+            padding: 1.3rem;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            line-height: 2;
+            color: var(--text-dim);
+        }
+        .term-body .p { color: var(--accent); }
+        .term-body .c { color: var(--text); }
+        .term-body .o { color: var(--text-dim); }
+        .term-body .r { color: var(--red); }
+        .term-body .y { color: var(--yellow); }
+        .term-body .b { color: var(--blue); }
+        .cursor-blink {
+            display: inline-block;
+            width: 8px; height: 14px;
+            background: var(--accent);
+            animation: blink 1s infinite;
+            vertical-align: middle;
+            margin-left: 3px;
+        }
+
+        /* ========== SECTION COMMON ========== */
+        section { padding: 7rem 2.5rem; max-width: 1200px; margin: 0 auto; }
+
+        .section-label {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 0.6rem;
+        }
+        .section-label::before { content: '// '; opacity: 0.4; }
+
+        .section-title {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 1rem;
+        }
+
+        .section-desc {
+            color: var(--text-dim);
+            font-size: 1rem;
+            max-width: 600px;
+            margin-bottom: 3rem;
+            line-height: 1.8;
+        }
+
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border-light), transparent);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* ========== ABOUT ========== */
+        .about-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 3.5rem;
+            align-items: start;
+        }
+
+        .about-text {
+            color: var(--text-mid);
+            font-size: 1.02rem;
+            line-height: 1.9;
+        }
+        .about-text p + p { margin-top: 1.2rem; }
+        .about-text strong { color: var(--text); font-weight: 500; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            transition: all 0.4s;
+        }
+        .stat-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 35px var(--accent-dim);
+            transform: translateY(-2px);
+        }
+        .stat-number {
+            font-family: var(--font-display);
+            font-size: 2.4rem;
+            font-weight: 800;
+            color: var(--accent);
+            line-height: 1;
+        }
+        .stat-label {
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-top: 0.5rem;
+        }
+
+        /* ========== EXPERIENCE ========== */
+        .timeline { position: relative; padding-left: 2.5rem; }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 1px;
+            background: linear-gradient(180deg, var(--accent), var(--border), transparent);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 3rem;
+            padding-bottom: 3rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .timeline-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -2.5rem;
+            top: 6px;
+            width: 9px; height: 9px;
+            background: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 12px var(--accent-glow);
+        }
+
+        .exp-header { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.3rem; }
+        .exp-company {
+            font-family: var(--font-display);
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+        .exp-date {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--accent);
+            letter-spacing: 1px;
+        }
+        .exp-role {
+            font-size: 0.95rem;
+            color: var(--text-mid);
+            margin-bottom: 1rem;
+        }
+        .exp-location {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-dim);
+        }
+        .exp-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+        .exp-list li {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            padding-left: 1.2rem;
+            position: relative;
+            line-height: 1.7;
+        }
+        .exp-list li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-size: 0.8rem;
+        }
+
+        /* ========== CERTS ========== */
+        .certs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1rem;
+        }
+        .cert-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 1.8rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s;
+        }
+        .cert-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 3px;
+            background: linear-gradient(90deg, var(--accent), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .cert-card:hover::before { opacity: 1; }
+        .cert-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px var(--accent-dim);
+        }
+        .cert-abbr {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--accent);
+            margin-bottom: 0.4rem;
+        }
+        .cert-name {
+            font-size: 0.88rem;
+            color: var(--text-mid);
+            line-height: 1.5;
+            margin-bottom: 0.8rem;
+        }
+        .cert-org {
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        /* ========== SKILLS ========== */
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        .skill-group {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 2rem;
+            transition: all 0.3s;
+        }
+        .skill-group:hover { border-color: var(--accent); }
+        .skill-group-icon { font-size: 1.5rem; margin-bottom: 0.8rem; }
+        .skill-group-title {
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        .skill-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .skill-tag {
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            padding: 0.35rem 0.75rem;
+            background: var(--accent-dim);
+            color: var(--accent);
+            letter-spacing: 0.5px;
+            transition: all 0.3s;
+        }
+        .skill-tag:hover {
+            background: var(--accent);
+            color: var(--bg);
+        }
+
+        /* ========== PROJECTS ========== */
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+        .project-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 2.2rem;
+            transition: all 0.4s;
+            position: relative;
+            overflow: hidden;
+        }
+        .project-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent), var(--red));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .project-card:hover::after { opacity: 1; }
+        .project-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-3px);
+            box-shadow: 0 15px 50px var(--accent-dim);
+        }
+        .project-label {
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            color: var(--red);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 0.8rem;
+        }
+        .project-title {
+            font-family: var(--font-display);
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.8rem;
+        }
+        .project-desc {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            line-height: 1.8;
+        }
+        .project-tech {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1.3rem;
+        }
+        .project-tech span {
+            font-family: var(--font-mono);
+            font-size: 0.63rem;
+            padding: 0.3rem 0.6rem;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            letter-spacing: 0.5px;
+        }
+
+        /* ========== ACHIEVEMENTS ========== */
+        .achievements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        .achievement-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 1.8rem;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .achievement-card:hover {
+            border-color: var(--yellow);
+            box-shadow: 0 0 30px rgba(255,214,10,0.08);
+        }
+        .achievement-icon { font-size: 2rem; margin-bottom: 0.8rem; }
+        .achievement-title {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 1.05rem;
+            margin-bottom: 0.3rem;
+        }
+        .achievement-sub {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--text-dim);
+        }
+
+        /* ========== CONTACT ========== */
+        .contact-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 3rem;
+            align-items: start;
+        }
+        .contact-text {
+            color: var(--text-mid);
+            font-size: 1.05rem;
+            line-height: 1.9;
+        }
+        .contact-links {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+        .contact-link {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.1rem 1.4rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            text-decoration: none;
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            transition: all 0.3s;
+        }
+        .contact-link:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 25px var(--accent-dim);
+            transform: translateX(5px);
+        }
+        .contact-link .link-icon { font-size: 1.2rem; }
+        .contact-link .link-label {
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        /* ========== FOOTER ========== */
+        footer {
+            text-align: center;
+            padding: 3rem 2.5rem;
+            border-top: 1px solid var(--border);
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--text-dim);
+        }
+        footer .accent { color: var(--accent); }
+
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 900px) {
+            .hero-terminal { display: none; }
+            .about-grid, .contact-grid { grid-template-columns: 1fr; }
+            nav { padding: 1rem 1.5rem; }
+            section { padding: 5rem 1.5rem; }
+            .hero { padding: 5rem 1.5rem 3rem; }
+            .nav-links { display: none; }
+            .hamburger { display: flex; }
+            .nav-links.open {
+                display: flex;
+                flex-direction: column;
+                position: absolute;
+                top: 100%; left: 0; right: 0;
+                background: var(--bg-secondary);
+                border-bottom: 1px solid var(--border);
+                padding: 1.5rem 2rem;
+                gap: 1.2rem;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .hero h1 { font-size: 2.5rem; letter-spacing: -1px; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .certs-grid { grid-template-columns: 1fr; }
+            .skills-grid { grid-template-columns: 1fr; }
+            .projects-grid { grid-template-columns: 1fr; }
+            .achievements-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="scanline"></div>
+<div class="glow-orb"></div>
+<div class="glow-orb-2"></div>
+
+<!-- NAV -->
+<nav>
+    <a href="#" class="logo">4mr<span class="dim">@security</span></a>
+    <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+        <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links">
+        <li><a href="#about">About</a></li>
+        <li><a href="#experience">Experience</a></li>
+        <li><a href="#certs">Certifications</a></li>
+        <li><a href="#skills">Skills</a></li>
+        <li><a href="#projects">Projects</a></li>
+        <li><a href="#contact">Contact</a></li>
+    </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+    <div class="hero-content">
+        <div class="hero-badge"><span class="dot"></span> Available for engagements</div>
+        <h1>
+            <span class="accent">Amr</span> En-Niari<br>
+            <span class="outline">Red Team</span> Operator
+        </h1>
+        <p class="hero-sub">
+            Offensive Security Consultant specializing in penetration testing, Active Directory exploitation, 
+            and red team operations. Breaking defenses to build stronger security.
+        </p>
+        <div class="hero-cta">
+            <a href="#contact" class="btn">Get in Touch</a>
+            <a href="#experience" class="btn btn-outline">View Experience</a>
+        </div>
+    </div>
+
+    <div class="hero-terminal">
+        <div class="term-bar">
+            <div class="term-dot"></div>
+            <div class="term-dot"></div>
+            <div class="term-dot"></div>
+            <span class="term-title">4mr@kali:~</span>
+        </div>
+        <div class="term-body">
+            <span class="p">┌──(</span><span class="r">4mr</span><span class="p">㉿</span><span class="r">kali</span><span class="p">)-[</span><span class="b">~</span><span class="p">]</span><br>
+            <span class="p">└─$</span> <span class="c">whoami</span><br>
+            <span class="o">Red Team Operator | Offensive Security</span><br><br>
+            <span class="p">┌──(</span><span class="r">4mr</span><span class="p">㉿</span><span class="r">kali</span><span class="p">)-[</span><span class="b">~</span><span class="p">]</span><br>
+            <span class="p">└─$</span> <span class="c">cat /etc/certs</span><br>
+            <span class="y">CRTO</span> <span class="o">|</span> <span class="y">CRTL</span> <span class="o">|</span> <span class="y">CRTE</span> <span class="o">|</span> <span class="y">OSEP</span><br><br>
+            <span class="p">┌──(</span><span class="r">4mr</span><span class="p">㉿</span><span class="r">kali</span><span class="p">)-[</span><span class="b">~</span><span class="p">]</span><br>
+            <span class="p">└─$</span> <span class="c">nmap -sV --script=vuln target</span><br>
+            <span class="o">Scanning...</span><span class="cursor-blink"></span>
+        </div>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ABOUT -->
+<section id="about" class="fade-section">
+    <div class="section-label">About</div>
+    <div class="section-title">Who I Am</div>
+    <div class="about-grid">
+        <div class="about-text">
+            <p>
+                I'm <strong>Amr En-Niari</strong>, an Offensive Security Consultant based in Rabat, Morocco. 
+                I specialize in penetration testing and red team operations, with deep expertise in 
+                <strong>Active Directory exploitation</strong>, <strong>malware development</strong>, and 
+                <strong>evasion techniques</strong>.
+            </p>
+            <p>
+                With a State Engineering degree in Computer Science from ENSA Tangier and multiple advanced 
+                certifications, I've dedicated my career to assessing the strength of digital infrastructures. 
+                I identify critical vulnerabilities that help organizations protect their most sensitive assets.
+            </p>
+            <p>
+                Currently at <strong>Nearsecure</strong>, I execute pentest and red team engagements for 
+                clients across banking and critical infrastructure, developing custom offensive tools and 
+                delivering actionable security assessments.
+            </p>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">3+</div>
+                <div class="stat-label">Years Experience</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">5</div>
+                <div class="stat-label">Certifications</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">#1</div>
+                <div class="stat-label">Morocco — SIT Africa</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">1%</div>
+                <div class="stat-label">Worldwide — TryHackMe</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- EXPERIENCE -->
+<section id="experience" class="fade-section">
+    <div class="section-label">Experience</div>
+    <div class="section-title">Where I've Worked</div>
+    <div class="timeline">
+        <div class="timeline-item">
+            <div class="exp-header">
+                <span class="exp-company">Nearsecure</span>
+                <span class="exp-date">Sep 2023 — Present</span>
+            </div>
+            <div class="exp-role">Offensive Security Consultant · <span class="exp-location">Rabat, Morocco</span></div>
+            <ul class="exp-list">
+                <li>Execution of penetration testing and red team engagements for banking and critical infrastructure clients</li>
+                <li>Design and development of advanced offensive tools for intrusion testing and red team operations</li>
+                <li>Analysis and writing of detailed technical reports with business-impact risk assessments</li>
+                <li>Coordination of operations based on elaborate attack scenarios tailored to each target</li>
+                <li>Development of custom C2 frameworks and evasion tooling to bypass EDR/AV solutions</li>
+                <li>Management of offensive projects and preparing debriefing meetings with clients</li>
+                <li>Conducting presentations on labs and recent vulnerabilities with live demonstrations</li>
+            </ul>
+        </div>
+
+        <div class="timeline-item">
+            <div class="exp-header">
+                <span class="exp-company">Freelance</span>
+                <span class="exp-date">Ongoing</span>
+            </div>
+            <div class="exp-role">Penetration Tester · <span class="exp-location">Rabat, Morocco</span></div>
+            <ul class="exp-list">
+                <li>Black-box, white-box, and grey-box penetration tests on web applications, networks, and infrastructure</li>
+                <li>Social engineering and phishing simulations to assess human factor vulnerabilities</li>
+                <li>Custom scripts and tools development to automate testing processes</li>
+                <li>Post-exploitation activities including privilege escalation and lateral movement</li>
+            </ul>
+        </div>
+
+        <div class="timeline-item">
+            <div class="exp-header">
+                <span class="exp-company">Nearsecure</span>
+                <span class="exp-date">Feb 2023 — Sep 2023</span>
+            </div>
+            <div class="exp-role">Jr Offensive Security Intern · <span class="exp-location">Rabat, Morocco</span></div>
+            <ul class="exp-list">
+                <li>Developed a C2 framework to bypass Kaspersky, Windows Defender, and Sophos EDR</li>
+                <li>Active Directory and infrastructure attack execution</li>
+                <li>Designed and developed CTF exercises to train team members</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- CERTIFICATIONS -->
+<section id="certs" class="fade-section">
+    <div class="section-label">Certifications</div>
+    <div class="section-title">Credentials</div>
+    <div class="certs-grid">
+        <div class="cert-card">
+            <div class="cert-abbr">CRTE</div>
+            <div class="cert-name">Certified Red Team Expert</div>
+            <div class="cert-org">Altered Security</div>
+        </div>
+        <div class="cert-card">
+            <div class="cert-abbr">CRTL</div>
+            <div class="cert-name">Certified Red Team Lead</div>
+            <div class="cert-org">Zero-Point Security</div>
+        </div>
+        <div class="cert-card">
+            <div class="cert-abbr">CRTO</div>
+            <div class="cert-name">Certified Red Team Operator</div>
+            <div class="cert-org">Zero-Point Security</div>
+        </div>
+        <div class="cert-card">
+            <div class="cert-abbr">C2 Dev</div>
+            <div class="cert-name">C2 Development with C#</div>
+            <div class="cert-org">Zero-Point Security</div>
+        </div>
+        <div class="cert-card">
+            <div class="cert-abbr">HTB Pro</div>
+            <div class="cert-name">Certified Zephyr Pro Lab</div>
+            <div class="cert-org">Hack The Box</div>
+        </div>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- SKILLS -->
+<section id="skills" class="fade-section">
+    <div class="section-label">Arsenal</div>
+    <div class="section-title">Technical Skills</div>
+    <div class="skills-grid">
+        <div class="skill-group">
+            <div class="skill-group-icon">⚔️</div>
+            <div class="skill-group-title">Offensive Security</div>
+            <div class="skill-tags">
+                <span class="skill-tag">Red Teaming</span>
+                <span class="skill-tag">Vulnerability Assessment</span>
+                <span class="skill-tag">Exploit Development</span>
+                <span class="skill-tag">Social Engineering</span>
+                <span class="skill-tag">Post-Exploitation</span>
+                <span class="skill-tag">Privilege Escalation</span>
+                <span class="skill-tag">Lateral Movement</span>
+                <span class="skill-tag">AD Attacks</span>
+                <span class="skill-tag">MITM</span>
+            </div>
+        </div>
+        <div class="skill-group">
+            <div class="skill-group-icon">🦠</div>
+            <div class="skill-group-title">Malware Dev & Evasion</div>
+            <div class="skill-tags">
+                <span class="skill-tag">Custom Malware</span>
+                <span class="skill-tag">EDR/AV Bypass</span>
+                <span class="skill-tag">Process Injection</span>
+                <span class="skill-tag">API Re-implementation</span>
+                <span class="skill-tag">Code Obfuscation</span>
+                <span class="skill-tag">XOR / RC4 Encoding</span>
+                <span class="skill-tag">Shellcode Dev</span>
+            </div>
+        </div>
+        <div class="skill-group">
+            <div class="skill-group-icon">🌐</div>
+            <div class="skill-group-title">Network & Infrastructure</div>
+            <div class="skill-tags">
+                <span class="skill-tag">Network Recon</span>
+                <span class="skill-tag">VLAN Hopping</span>
+                <span class="skill-tag">NAC Bypass</span>
+                <span class="skill-tag">Proxy Pivoting</span>
+                <span class="skill-tag">Wireshark</span>
+                <span class="skill-tag">Firewall Evasion</span>
+                <span class="skill-tag">SSH Tunneling</span>
+                <span class="skill-tag">DNS Tunneling</span>
+            </div>
+        </div>
+        <div class="skill-group">
+            <div class="skill-group-icon">🔓</div>
+            <div class="skill-group-title">Web Application Security</div>
+            <div class="skill-tags">
+                <span class="skill-tag">OWASP Top 10</span>
+                <span class="skill-tag">SQL Injection</span>
+                <span class="skill-tag">XSS</span>
+                <span class="skill-tag">Auth Bypass</span>
+                <span class="skill-tag">Burp Suite</span>
+                <span class="skill-tag">JWT Manipulation</span>
+                <span class="skill-tag">OAuth 2.0</span>
+                <span class="skill-tag">REST API Testing</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- PROJECTS -->
+<section id="projects" class="fade-section">
+    <div class="section-label">Projects</div>
+    <div class="section-title">What I've Built</div>
+    <div class="projects-grid">
+        <div class="project-card">
+            <div class="project-label">Offensive Tool</div>
+            <div class="project-title">Custom C2 Framework</div>
+            <div class="project-desc">
+                Modular Command & Control framework for managing remote agents during red team engagements. 
+                Features encrypted communication channels and advanced evasion techniques to bypass Kaspersky, 
+                Windows Defender, and Sophos EDR. Supports msfconsole payload generation and flexible command execution.
+            </div>
+            <div class="project-tech">
+                <span>C#</span>
+                <span>C/C++</span>
+                <span>Encryption</span>
+                <span>Process Injection</span>
+                <span>EDR Bypass</span>
+            </div>
+        </div>
+        <div class="project-card">
+            <div class="project-label">Red Team Suite</div>
+            <div class="project-title">Red Teaming Toolkit</div>
+            <div class="project-desc">
+                Suite of custom red teaming tools for internal and external penetration tests. Includes custom 
+                scanners, privilege escalation scripts, lateral movement utilities, and post-exploitation modules 
+                optimized for stealth with advanced evasion via API hooking and encrypted payload delivery.
+            </div>
+            <div class="project-tech">
+                <span>Python</span>
+                <span>PowerShell</span>
+                <span>API Hooking</span>
+                <span>Payload Encryption</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ACHIEVEMENTS -->
+<section class="fade-section">
+    <div class="section-label">Achievements</div>
+    <div class="section-title">Competition Results</div>
+    <div class="achievements-grid">
+        <div class="achievement-card">
+            <div class="achievement-icon">🥇</div>
+            <div class="achievement-title">Top #1 Morocco</div>
+            <div class="achievement-sub">SIT Africa 2023</div>
+        </div>
+        <div class="achievement-card">
+            <div class="achievement-icon">🌍</div>
+            <div class="achievement-title">Top #69 Africa</div>
+            <div class="achievement-sub">picoCTF 2022</div>
+        </div>
+        <div class="achievement-card">
+            <div class="achievement-icon">🏆</div>
+            <div class="achievement-title">Top 1% Worldwide</div>
+            <div class="achievement-sub">TryHackMe 2023</div>
+        </div>
+        <div class="achievement-card">
+            <div class="achievement-icon">💀</div>
+            <div class="achievement-title">Elite Hacker</div>
+            <div class="achievement-sub">Hack The Box</div>
+        </div>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- EDUCATION -->
+<section class="fade-section">
+    <div class="section-label">Education</div>
+    <div class="section-title">Academic Background</div>
+    <div class="timeline">
+        <div class="timeline-item">
+            <div class="exp-header">
+                <span class="exp-company">ENSA — National School of Applied Sciences</span>
+                <span class="exp-date">2018 — 2023</span>
+            </div>
+            <div class="exp-role">State Engineer in Computer Science · <span class="exp-location">Tangier, Morocco</span></div>
+            <ul class="exp-list">
+                <li>Specialization: Computer Engineering and Networks</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- CONTACT -->
+<section id="contact" class="fade-section">
+    <div class="section-label">Contact</div>
+    <div class="section-title">Let's Work Together</div>
+    <div class="contact-grid">
+        <div class="contact-text">
+            Looking for an experienced offensive security consultant for your next penetration test, 
+            red team engagement, or security assessment? I'm available for freelance projects and 
+            consulting work across Europe and Morocco.
+        </div>
+        <div class="contact-links">
+            <a href="mailto:amro.niari@gmail.com" class="contact-link">
+                <span class="link-icon">✉</span>
+                <div>
+                    <div class="link-label">Email</div>
+                    amro.niari@gmail.com
+                </div>
+            </a>
+            <a href="https://linkedin.com/in/amr-en-niari" target="_blank" class="contact-link">
+                <span class="link-icon">in</span>
+                <div>
+                    <div class="link-label">LinkedIn</div>
+                    amr-en-niari
+                </div>
+            </a>
+            <a href="https://github.com/4mrr" target="_blank" class="contact-link">
+                <span class="link-icon">⌨</span>
+                <div>
+                    <div class="link-label">GitHub</div>
+                    4mrr
+                </div>
+            </a>
+            <a href="tel:+212693117822" class="contact-link">
+                <span class="link-icon">☎</span>
+                <div>
+                    <div class="link-label">Phone</div>
+                    +212 693 117 822
+                </div>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+    <p>Designed by <span class="accent">4mr</span> · Red Team Operator · Rabat, Morocco</p>
+</footer>
+
+<script>
+    // Intersection Observer for fade-in sections
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            }
+        });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+    document.querySelectorAll('.fade-section').forEach(el => observer.observe(el));
+
+    // Smooth scroll for nav links
+    document.querySelectorAll('.nav-links a').forEach(link => {
+        link.addEventListener('click', () => {
+            document.querySelector('.nav-links').classList.remove('open');
+        });
+    });
+</script>
+
+</body>
+</html>
