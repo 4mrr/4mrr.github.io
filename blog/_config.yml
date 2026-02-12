@@ -26,6 +26,8 @@ url: "https://4mrr.github.io"
 twitter_username: ""
 github_username: 4mrr
 
+exclude:
+  - index.html
 # Build settings
 theme: minima
 plugins:

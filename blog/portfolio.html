@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4mr</title>
+    <meta name="description" content="Amr En-Niari — Red Team Operator & Offensive Security Consultant based in Morocco. Penetration Testing, Active Directory Exploitation, Malware Development.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #06060b;
+            --bg2: #0c0c14;
+            --card: #111119;
+            --card-h: #17171f;
+            --accent: #00ffaa;
+            --accent8: rgba(0,255,170,0.08);
+            --accent15: rgba(0,255,170,0.15);
+            --accent40: rgba(0,255,170,0.4);
+            --red: #ff2d55;
+            --orange: #ff8c00;
+            --blue: #00aaff;
+            --cyan: #00e5ff;
+            --yellow: #ffd60a;
+            --txt: #e4e4ee;
+            --dim: #6e6e82;
+            --mid: #9e9eb2;
+            --bdr: #1e1e2e;
+            --bdr2: #2a2a3e;
+            --mono: 'JetBrains Mono', monospace;
+            --head: 'Syne', sans-serif;
+            --body: 'Outfit', sans-serif;
+        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        ::selection{background:var(--accent);color:var(--bg)}
+        html{scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:var(--accent) var(--bg)}
+        body{background:var(--bg);color:var(--txt);font-family:var(--body);overflow-x:hidden;line-height:1.7}
+
+        /* Noise */
+        body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");pointer-events:none;z-index:9999}
+
+        .grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(30,30,46,0.4) 1px,transparent 1px),linear-gradient(90deg,rgba(30,30,46,0.4) 1px,transparent 1px);background-size:80px 80px;opacity:.06;z-index:-1}
+        .scanline{position:fixed;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent40),transparent);z-index:9998;animation:scan 6s linear infinite;opacity:.25}
+        @keyframes scan{0%{top:-2px}100%{top:100vh}}
+        .orb1{position:fixed;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,var(--accent15),transparent 70%);pointer-events:none;z-index:-1;top:20%;left:-10%;animation:of1 12s ease-in-out infinite alternate}
+        .orb2{position:fixed;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(255,45,85,0.06),transparent 70%);pointer-events:none;z-index:-1;bottom:10%;right:-5%;animation:of2 15s ease-in-out infinite alternate}
+        @keyframes of1{0%{transform:translate(0,0)}100%{transform:translate(60px,40px)}}
+        @keyframes of2{0%{transform:translate(0,0)}100%{transform:translate(-40px,-30px)}}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(25px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0}}
+        @keyframes pulse{0%,100%{box-shadow:0 0 0 0 var(--accent15)}50%{box-shadow:0 0 20px 5px var(--accent15)}}
+
+        .fade-s{opacity:0;transform:translateY(30px);transition:all .7s cubic-bezier(.16,1,.3,1)}
+        .fade-s.vis{opacity:1;transform:translateY(0)}
+
+        /* NAV */
+        nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:1rem 2.5rem;display:flex;justify-content:space-between;align-items:center;backdrop-filter:blur(20px);background:rgba(6,6,11,.88);border-bottom:1px solid var(--bdr)}
+        .logo{font-family:var(--mono);font-weight:700;font-size:1.3rem;color:var(--accent);text-decoration:none;letter-spacing:-.5px}
+        .logo .d{color:var(--dim);font-weight:400}
+        .nav-l{display:flex;gap:2rem;list-style:none}
+        .nav-l a{font-family:var(--mono);font-size:.72rem;color:var(--dim);text-decoration:none;text-transform:uppercase;letter-spacing:2px;transition:color .3s;position:relative}
+        .nav-l a:hover{color:var(--accent)}
+        .nav-l a::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:1px;background:var(--accent);transition:width .3s}
+        .nav-l a:hover::after{width:100%}
+        .ham{display:none;flex-direction:column;gap:5px;cursor:pointer;background:none;border:none;padding:5px}
+        .ham span{width:24px;height:2px;background:var(--txt);transition:all .3s}
+
+        /* HERO */
+        .hero{min-height:100vh;display:flex;align-items:center;padding:6rem 2.5rem 3rem;position:relative}
+        .hero-c{max-width:700px}
+        .hero h1{font-family:var(--head);font-size:clamp(2.5rem,5vw,4rem);font-weight:800;line-height:1.05;letter-spacing:-2px;margin-bottom:1.2rem;opacity:0;animation:fadeUp .6s .3s forwards}
+        .hero h1 .a{color:var(--accent)}
+        .hero h1 .o{-webkit-text-stroke:1.5px var(--txt);color:transparent}
+        .hero-sub{font-size:1.15rem;color:var(--dim);max-width:550px;line-height:1.8;opacity:0;animation:fadeUp .6s .5s forwards}
+        .hero-cta{display:flex;gap:1rem;margin-top:2.5rem;flex-wrap:wrap;opacity:0;animation:fadeUp .6s .7s forwards}
+
+        .btn{font-family:var(--mono);font-size:.78rem;padding:.85rem 2rem;border:1px solid var(--accent);color:var(--accent);background:transparent;text-decoration:none;text-transform:uppercase;letter-spacing:2px;cursor:pointer;transition:all .3s;position:relative;overflow:hidden}
+        .btn::before{content:'';position:absolute;inset:0;background:var(--accent);transform:translateX(-101%);transition:transform .3s;z-index:-1}
+        .btn:hover::before{transform:translateX(0)}
+        .btn:hover{color:var(--bg)}
+        .btn-o{border-color:var(--bdr2);color:var(--mid)}
+        .btn-o::before{background:var(--card-h)}
+        .btn-o:hover{color:var(--txt);border-color:var(--dim)}
+
+        /* Terminal */
+        .term{position:absolute;right:2.5rem;top:50%;transform:translateY(-50%);width:440px;background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;overflow:hidden;opacity:0;animation:fadeUp .8s 1s forwards}
+        .term-bar{display:flex;align-items:center;gap:7px;padding:11px 15px;background:var(--card);border-bottom:1px solid var(--bdr)}
+        .td{width:11px;height:11px;border-radius:50%}
+        .td:nth-child(1){background:var(--red)}.td:nth-child(2){background:var(--yellow)}.td:nth-child(3){background:var(--accent)}
+        .term-t{font-family:var(--mono);font-size:.68rem;color:var(--dim);margin-left:auto}
+        .term-b{padding:1.3rem;font-family:var(--mono);font-size:.75rem;line-height:2;color:var(--dim)}
+        .term-b .p{color:var(--accent)}.term-b .c{color:var(--txt)}.term-b .r{color:var(--red)}.term-b .y{color:var(--yellow)}.term-b .b{color:var(--blue)}
+        .cur{display:inline-block;width:8px;height:14px;background:var(--accent);animation:blink 1s infinite;vertical-align:middle;margin-left:3px}
+
+        /* SECTIONS */
+        section{padding:7rem 2.5rem;max-width:1200px;margin:0 auto}
+        .sl{font-family:var(--mono);font-size:.7rem;color:var(--accent);text-transform:uppercase;letter-spacing:3px;margin-bottom:.6rem}
+        .sl::before{content:'// ';opacity:.4}
+        .st{font-family:var(--head);font-size:clamp(2rem,4vw,3rem);font-weight:700;letter-spacing:-1px;margin-bottom:1rem}
+        .sd{color:var(--dim);font-size:1rem;max-width:600px;margin-bottom:3rem;line-height:1.8}
+        .divider{height:1px;background:linear-gradient(90deg,transparent,var(--bdr2),transparent);max-width:1200px;margin:0 auto}
+
+        /* ABOUT */
+        .about-g{display:grid;grid-template-columns:1.2fr 1fr;gap:3.5rem;align-items:start}
+        .about-t{color:var(--mid);font-size:1.02rem;line-height:1.9}
+        .about-t p+p{margin-top:1.2rem}
+        .about-t strong{color:var(--txt);font-weight:500}
+        .stats-g{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+        .stat{background:var(--card);border:1px solid var(--bdr);padding:1.5rem;transition:all .4s}
+        .stat:hover{border-color:var(--accent);box-shadow:0 0 35px var(--accent8);transform:translateY(-2px)}
+        .stat-n{font-family:var(--head);font-size:2.4rem;font-weight:800;color:var(--accent);line-height:1}
+        .stat-l{font-family:var(--mono);font-size:.65rem;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px;margin-top:.5rem}
+
+        /* EXPERIENCE */
+        .tl{position:relative;padding-left:2.5rem}
+        .tl::before{content:'';position:absolute;left:0;top:0;bottom:0;width:1px;background:linear-gradient(180deg,var(--accent),var(--bdr),transparent)}
+        .tl-i{position:relative;margin-bottom:3rem;padding-bottom:3rem;border-bottom:1px solid var(--bdr)}
+        .tl-i:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+        .tl-i::before{content:'';position:absolute;left:-2.5rem;top:6px;width:9px;height:9px;background:var(--accent);border-radius:50%;box-shadow:0 0 12px var(--accent15)}
+        .exp-h{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:.5rem;margin-bottom:.3rem}
+        .exp-c{font-family:var(--head);font-size:1.3rem;font-weight:700}
+        .exp-d{font-family:var(--mono);font-size:.72rem;color:var(--accent);letter-spacing:1px}
+        .exp-r{font-size:.95rem;color:var(--mid);margin-bottom:1rem}
+        .exp-loc{font-family:var(--mono);font-size:.7rem;color:var(--dim)}
+        .exp-ul{list-style:none;display:flex;flex-direction:column;gap:.6rem}
+        .exp-ul li{color:var(--dim);font-size:.9rem;padding-left:1.2rem;position:relative;line-height:1.7}
+        .exp-ul li::before{content:'→';position:absolute;left:0;color:var(--accent);font-size:.8rem}
+
+        /* CERTS */
+        .certs-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem}
+        .cert{background:var(--card);border:1px solid var(--bdr);padding:1.8rem;position:relative;overflow:hidden;transition:all .4s;text-decoration:none;color:inherit;display:block}
+        .cert::before{content:'';position:absolute;top:0;left:0;width:100%;height:3px;background:linear-gradient(90deg,var(--accent),transparent);opacity:0;transition:opacity .3s}
+        .cert:hover::before{opacity:1}
+        .cert:hover{border-color:var(--accent);transform:translateY(-4px);box-shadow:0 12px 40px var(--accent8)}
+        .cert-a{font-family:var(--mono);font-weight:700;font-size:1.2rem;color:var(--accent);margin-bottom:.4rem}
+        .cert-n{font-size:.88rem;color:var(--mid);line-height:1.5;margin-bottom:.8rem}
+        .cert-o{font-family:var(--mono);font-size:.65rem;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px}
+        .cert-v{font-family:var(--mono);font-size:.65rem;color:var(--accent);margin-top:1rem;opacity:0;transition:opacity .3s;letter-spacing:1px}
+        .cert:hover .cert-v{opacity:1}
+
+        /* PROLAB */
+        .prolab-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:1.2rem;margin-top:1.5rem}
+        .prolab{background:var(--card);border:1px solid var(--bdr);overflow:hidden;transition:all .4s}
+        .prolab:hover{border-color:var(--accent);box-shadow:0 10px 40px var(--accent8);transform:translateY(-3px)}
+        .prolab-h{display:flex;justify-content:space-between;align-items:center;padding:1.2rem 1.5rem;border-bottom:1px solid var(--bdr)}
+        .prolab-b{font-family:var(--mono);font-size:.85rem;font-weight:700;letter-spacing:2px}
+        .prolab-b.ifrit{color:var(--orange)}.prolab-b.zephyr{color:var(--cyan)}
+        .prolab-dt{font-family:var(--mono);font-size:.7rem;color:var(--dim)}
+        .prolab-info{padding:1.5rem}
+        .prolab-ti{font-family:var(--head);font-size:1.1rem;font-weight:600;margin-bottom:.6rem}
+        .prolab-tp{font-size:.82rem;color:var(--dim);line-height:1.7;margin-bottom:1rem}
+        .prolab-m{font-family:var(--mono);font-size:.65rem;color:var(--dim);letter-spacing:.5px;opacity:.7}
+
+        /* SKILLS */
+        .skills-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem}
+        .skg{background:var(--card);border:1px solid var(--bdr);padding:2rem;transition:all .3s}
+        .skg:hover{border-color:var(--accent)}
+        .skg-i{font-size:1.5rem;margin-bottom:.8rem}
+        .skg-t{font-family:var(--head);font-size:1.1rem;font-weight:600;margin-bottom:1rem}
+        .skg-tags{display:flex;flex-wrap:wrap;gap:.5rem}
+        .skt{font-family:var(--mono);font-size:.68rem;padding:.35rem .75rem;background:var(--accent8);color:var(--accent);letter-spacing:.5px;transition:all .3s}
+        .skt:hover{background:var(--accent);color:var(--bg)}
+
+        /* PROJECTS */
+        .proj-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:1.5rem}
+        .proj{background:var(--card);border:1px solid var(--bdr);padding:2.2rem;transition:all .4s;position:relative;overflow:hidden}
+        .proj::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--red));opacity:0;transition:opacity .3s}
+        .proj:hover::after{opacity:1}
+        .proj:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 15px 50px var(--accent8)}
+        .proj-l{font-family:var(--mono);font-size:.65rem;color:var(--red);text-transform:uppercase;letter-spacing:2px;margin-bottom:.8rem}
+        .proj-t{font-family:var(--head);font-size:1.3rem;font-weight:700;margin-bottom:.8rem}
+        .proj-d{color:var(--dim);font-size:.9rem;line-height:1.8}
+        .proj-tech{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1.3rem}
+        .proj-tech span{font-family:var(--mono);font-size:.63rem;padding:.3rem .6rem;border:1px solid var(--bdr);color:var(--dim);letter-spacing:.5px}
+
+        /* ACHIEVEMENTS */
+        .ach-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem}
+        .ach{background:var(--card);border:1px solid var(--bdr);padding:1.8rem;text-align:center;transition:all .3s}
+        .ach:hover{border-color:var(--yellow);box-shadow:0 0 30px rgba(255,214,10,.08)}
+        .ach-i{font-size:2rem;margin-bottom:.8rem}
+        .ach-t{font-family:var(--head);font-weight:700;font-size:1.05rem;margin-bottom:.3rem}
+        .ach-s{font-family:var(--mono);font-size:.72rem;color:var(--dim)}
+
+        /* PLATFORMS */
+        .plat-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-top:1.5rem}
+        .plat{display:flex;align-items:center;gap:1rem;padding:1.3rem 1.5rem;background:var(--card);border:1px solid var(--bdr);text-decoration:none;color:var(--txt);transition:all .3s}
+        .plat:hover{border-color:var(--accent);box-shadow:0 0 25px var(--accent8);transform:translateX(5px)}
+        .plat-i{font-size:1.5rem}
+        .plat-n{font-family:var(--head);font-size:.95rem;font-weight:600}
+        .plat-u{font-family:var(--mono);font-size:.75rem;color:var(--accent)}
+
+        /* CONTACT */
+        .contact-g{display:grid;grid-template-columns:1.2fr 1fr;gap:3rem;align-items:start}
+        .contact-t{color:var(--mid);font-size:1.05rem;line-height:1.9}
+        .contact-ls{display:flex;flex-direction:column;gap:.8rem}
+        .cl{display:flex;align-items:center;gap:1rem;padding:1.1rem 1.4rem;background:var(--card);border:1px solid var(--bdr);color:var(--txt);text-decoration:none;font-family:var(--mono);font-size:.82rem;transition:all .3s}
+        .cl:hover{border-color:var(--accent);box-shadow:0 0 25px var(--accent8);transform:translateX(5px)}
+        .cl-i{font-size:1.2rem}
+        .cl-l{font-size:.65rem;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px}
+
+        footer{text-align:center;padding:3rem 2.5rem;border-top:1px solid var(--bdr);font-family:var(--mono);font-size:.72rem;color:var(--dim)}
+        footer .a{color:var(--accent)}
+
+        /* RESPONSIVE */
+        @media(max-width:900px){
+            .term{display:none}
+            .about-g,.contact-g{grid-template-columns:1fr}
+            nav{padding:1rem 1.5rem}
+            section{padding:5rem 1.5rem}
+            .hero{padding:5rem 1.5rem 3rem}
+            .nav-l{display:none}
+            .ham{display:flex}
+            .nav-l.open{display:flex;flex-direction:column;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border-bottom:1px solid var(--bdr);padding:1.5rem 2rem;gap:1.2rem}
+        }
+        @media(max-width:600px){
+            .hero h1{font-size:2.5rem;letter-spacing:-1px}
+            .stats-g,.certs-g,.ach-g{grid-template-columns:1fr}
+            .skills-g,.proj-g,.prolab-g{grid-template-columns:1fr}
+            .plat-g{grid-template-columns:1fr}
+        }
+    </style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="scanline"></div>
+<div class="orb1"></div>
+<div class="orb2"></div>
+
+<!-- NAV -->
+<nav>
+    <a href="#" class="logo">4mr<span class="d">@security</span></a>
+    <button class="ham" onclick="document.querySelector('.nav-l').classList.toggle('open')">
+        <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-l">
+        <li><a href="#about">About</a></li>
+        <li><a href="#experience">Experience</a></li>
+        <li><a href="#certs">Certs</a></li>
+        <li><a href="#skills">Skills</a></li>
+        <li><a href="#projects">Projects</a></li>
+        <li><a href="#contact">Contact</a></li>
+    </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+    <div class="hero-c">
+        <h1>
+            <span class="a">Amr</span> En-Niari<br>
+            <span class="o">Red Team</span> Operator
+        </h1>
+        <p class="hero-sub">
+            Offensive Security Consultant specializing in penetration testing, Active Directory exploitation,
+            and red team operations. Breaking defenses to build stronger security.
+        </p>
+        <div class="hero-cta">
+            <a href="#contact" class="btn">Get in Touch</a>
+            <a href="#experience" class="btn btn-o">View Experience</a>
+        </div>
+    </div>
+
+    <div class="term">
+        <div class="term-bar">
+            <div class="td"></div><div class="td"></div><div class="td"></div>
+            <span class="term-t">4mr@kali:~</span>
+        </div>
+        <div class="term-b">
+            <span class="p">┌──(</span><span class="r">4mr</span><span class="p">㉿</span><span class="r">kali</span><span class="p">)-[</span><span class="b">~</span><span class="p">]</span><br>
+            <span class="p">└─$</span> <span class="c">whoami</span><br>
+            <span>Red Team Operator | Offensive Security</span><br><br>
+            <span class="p">┌──(</span><span class="r">4mr</span><span class="p">㉿</span><span class="r">kali</span><span class="p">)-[</span><span class="b">~</span><span class="p">]</span><br>
+            <span class="p">└─$</span> <span class="c">cat /etc/certs</span><br>
+            <span class="y">CRTO</span> | <span class="y">CRTL</span> | <span class="y">CRTE</span> | <span class="y">HTB Ifrit</span> | <span class="y">HTB Zephyr</span><br><br>
+            <span class="p">┌──(</span><span class="r">4mr</span><span class="p">㉿</span><span class="r">kali</span><span class="p">)-[</span><span class="b">~</span><span class="p">]</span><br>
+            <span class="p">└─$</span> <span class="c">nmap -sV --script=vuln target</span><br>
+            <span>Scanning...</span><span class="cur"></span>
+        </div>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ABOUT -->
+<section id="about" class="fade-s">
+    <div class="sl">About</div>
+    <div class="st">Who I Am</div>
+    <div class="about-g">
+        <div class="about-t">
+            <p>
+                I'm <strong>Amr En-Niari</strong>, an Offensive Security Consultant based in Rabat, Morocco.
+                I specialize in penetration testing and red team operations, with deep expertise in
+                <strong>Active Directory exploitation</strong>, <strong>malware development</strong>, and
+                <strong>evasion techniques</strong>.
+            </p>
+            <p>
+                With a State Engineering degree in Computer Science from ENSA Tangier and multiple advanced
+                certifications, I've dedicated my career to assessing the strength of digital infrastructures.
+                I identify critical vulnerabilities that help organizations protect their most sensitive assets.
+            </p>
+            <p>
+                Currently at <strong>Nearsecure</strong>, I execute pentest and red team engagements for
+                clients across banking and critical infrastructure, developing custom offensive tools and
+                delivering actionable security assessments.
+            </p>
+        </div>
+        <div class="stats-g">
+            <div class="stat">
+                <div class="stat-n">3+</div>
+                <div class="stat-l">Years Experience</div>
+            </div>
+            <div class="stat">
+                <div class="stat-n">6</div>
+                <div class="stat-l">Certifications</div>
+            </div>
+            <div class="stat">
+                <div class="stat-n">#1</div>
+                <div class="stat-l">Morocco — SIT Africa</div>
+            </div>
+            <div class="stat">
+                <div class="stat-n">1%</div>
+                <div class="stat-l">Worldwide — TryHackMe</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- EXPERIENCE -->
+<section id="experience" class="fade-s">
+    <div class="sl">Experience</div>
+    <div class="st">Where I've Worked</div>
+    <div class="tl">
+        <div class="tl-i">
+            <div class="exp-h">
+                <span class="exp-c">Nearsecure</span>
+                <span class="exp-d">Sep 2023 — Present</span>
+            </div>
+            <div class="exp-r">Offensive Security Consultant · <span class="exp-loc">Rabat, Morocco</span></div>
+            <ul class="exp-ul">
+                <li>Execution of penetration testing and red team engagements for banking and critical infrastructure clients</li>
+                <li>Design and development of advanced offensive tools for intrusion testing and red team operations</li>
+                <li>Analysis and writing of detailed technical reports with business-impact risk assessments</li>
+                <li>Coordination of operations based on elaborate attack scenarios tailored to each target</li>
+                <li>Development of custom C2 frameworks and evasion tooling to bypass EDR/AV solutions</li>
+                <li>Management of offensive projects and preparing debriefing meetings with clients</li>
+                <li>Conducting presentations on labs and recent vulnerabilities with live demonstrations</li>
+            </ul>
+        </div>
+        <div class="tl-i">
+            <div class="exp-h">
+                <span class="exp-c">Freelance</span>
+                <span class="exp-d">Part Time</span>
+            </div>
+            <div class="exp-r">Penetration Tester · <span class="exp-loc">Rabat, Morocco</span></div>
+            <ul class="exp-ul">
+                <li>Black-box, white-box, and grey-box penetration tests on web applications, networks, and infrastructure</li>
+                <li>Social engineering and phishing simulations to assess human factor vulnerabilities</li>
+                <li>Custom scripts and tools development to automate testing processes</li>
+                <li>Post-exploitation activities including privilege escalation and lateral movement</li>
+            </ul>
+        </div>
+        <div class="tl-i">
+            <div class="exp-h">
+                <span class="exp-c">Nearsecure</span>
+                <span class="exp-d">Feb 2023 — Sep 2023</span>
+            </div>
+            <div class="exp-r">Jr Offensive Security Intern · <span class="exp-loc">Rabat, Morocco</span></div>
+            <ul class="exp-ul">
+                <li>Developed a C2 framework to bypass Kaspersky, Windows Defender, and Sophos EDR</li>
+                <li>Active Directory and infrastructure attack execution</li>
+                <li>Designed and developed CTF exercises to train team members</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- CERTIFICATIONS -->
+<section id="certs" class="fade-s">
+    <div class="sl">Certifications</div>
+    <div class="st">Credentials</div>
+    <div class="certs-g">
+        <a href="https://www.credential.net/8f9e1a0d-aee2-4e8e-b374-b7765fc80501" target="_blank" class="cert">
+            <div class="cert-a">CRTE</div>
+            <div class="cert-n">Certified Red Team Expert</div>
+            <div class="cert-o">Altered Security</div>
+            <div class="cert-v">↗ Verify Credential</div>
+        </a>
+        <a href="https://eu.badgr.com/public/assertions/ULFUkDUfSaakRoWffjlSEw" target="_blank" class="cert">
+            <div class="cert-a">CRTL</div>
+            <div class="cert-n">Certified Red Team Lead</div>
+            <div class="cert-o">Zero-Point Security</div>
+            <div class="cert-v">↗ Verify Credential</div>
+        </a>
+        <a href="https://badges.parchment.eu/public/assertions/a2TmrjncQG24kGCdBoAWlA" target="_blank" class="cert">
+            <div class="cert-a">CRTO</div>
+            <div class="cert-n">Certified Red Team Operator</div>
+            <div class="cert-o">Zero-Point Security</div>
+            <div class="cert-v">↗ Verify Credential</div>
+        </a>
+        <a href="https://eu.badgr.com/public/assertions/xYLeQqagRaOiBV9YYF2iIA"  target="_blank" class="cert">
+            <div class="cert-a">C2 Dev</div>
+            <div class="cert-n">C2 Development with C#</div>
+            <div class="cert-o">Zero-Point Security</div>
+        </a>
+        <div class="cert">
+            <div class="cert-a">HTB Zephyr</div>
+            <div class="cert-n">Pro Lab — Zephyr</div>
+            <div class="cert-o">Hack The Box</div>
+        </div>
+        <div class="cert">
+            <div class="cert-a">HTB Ifrit</div>
+            <div class="cert-n">Pro Lab — Ifrit</div>
+            <div class="cert-o">Hack The Box</div>
+        </div>
+    </div>
+
+    <!-- Pro Lab Certificates -->
+    <div class="sl" style="margin-top:3rem">Pro Lab Certificates</div>
+    <div class="prolab-g">
+        <div class="prolab">
+            <div class="prolab-h">
+                <span class="prolab-b ifrit">🔥 IFRIT</span>
+                <span class="prolab-dt">02 Feb 2026</span>
+            </div>
+            <div class="prolab-info">
+                <div class="prolab-ti">Hack The Box Pro Labs: Ifrit</div>
+                <div class="prolab-tp">Network & AD Enumeration, Active Directory & Custom Exploitation, Lateral Movement across multiple Forests, Bypassing EDR Solutions, Relay Attacks, Operating Covertly</div>
+                <div class="prolab-m">40 CPE Credits · 40 Hours · HTBCERT-484F812796</div>
+            </div>
+        </div>
+        <div class="prolab">
+            <div class="prolab-h">
+                <span class="prolab-b zephyr">💨 ZEPHYR</span>
+                <span class="prolab-dt">19 Apr 2023</span>
+            </div>
+            <div class="prolab-info">
+                <div class="prolab-ti">Hack The Box Pro Labs: Zephyr</div>
+                <div class="prolab-tp">Enumeration, Relay Attacks, Pivoting, SQL Attacks, Password Cracking, Privilege Escalation, Web Application Attacks, AD Exploitation, Crossing Trust Boundaries</div>
+                <div class="prolab-m">40 CPE Credits · 40 Hours · HTBCERT-1044581000</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- SKILLS -->
+<section id="skills" class="fade-s">
+    <div class="sl">Arsenal</div>
+    <div class="st">Technical Skills</div>
+    <div class="skills-g">
+        <div class="skg">
+            <div class="skg-i">⚔️</div>
+            <div class="skg-t">Offensive Security</div>
+            <div class="skg-tags">
+                <span class="skt">Red Teaming</span>
+                <span class="skt">Vulnerability Assessment</span>
+                <span class="skt">Exploit Development</span>
+                <span class="skt">Social Engineering</span>
+                <span class="skt">Post-Exploitation</span>
+                <span class="skt">Privilege Escalation</span>
+                <span class="skt">Lateral Movement</span>
+                <span class="skt">AD Attacks</span>
+                <span class="skt">MITM</span>
+            </div>
+        </div>
+        <div class="skg">
+            <div class="skg-i">🦠</div>
+            <div class="skg-t">Malware Dev & Evasion</div>
+            <div class="skg-tags">
+                <span class="skt">Custom Malware</span>
+                <span class="skt">EDR/AV Bypass</span>
+                <span class="skt">Process Injection</span>
+                <span class="skt">API Re-implementation</span>
+                <span class="skt">Code Obfuscation</span>
+                <span class="skt">XOR / RC4 Encoding</span>
+                <span class="skt">Shellcode Dev</span>
+            </div>
+        </div>
+        <div class="skg">
+            <div class="skg-i">🌐</div>
+            <div class="skg-t">Network & Infrastructure</div>
+            <div class="skg-tags">
+                <span class="skt">Network Recon</span>
+                <span class="skt">VLAN Hopping</span>
+                <span class="skt">NAC Bypass</span>
+                <span class="skt">Proxy Pivoting</span>
+                <span class="skt">Wireshark</span>
+                <span class="skt">Firewall Evasion</span>
+                <span class="skt">SSH Tunneling</span>
+                <span class="skt">DNS Tunneling</span>
+            </div>
+        </div>
+        <div class="skg">
+            <div class="skg-i">🔓</div>
+            <div class="skg-t">Web Application Security</div>
+            <div class="skg-tags">
+                <span class="skt">OWASP Top 10</span>
+                <span class="skt">SQL Injection</span>
+                <span class="skt">XSS</span>
+                <span class="skt">Auth Bypass</span>
+                <span class="skt">Burp Suite</span>
+                <span class="skt">JWT Manipulation</span>
+                <span class="skt">OAuth 2.0</span>
+                <span class="skt">REST API Testing</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- PROJECTS -->
+<section id="projects" class="fade-s">
+    <div class="sl">Projects</div>
+    <div class="st">What I've Built</div>
+    <div class="proj-g">
+        <div class="proj">
+            <div class="proj-l">Offensive Tool</div>
+            <div class="proj-t">Custom C2 Framework</div>
+            <div class="proj-d">
+                Modular Command & Control framework for managing remote agents during red team engagements.
+                Features encrypted communication channels and advanced evasion techniques to bypass Kaspersky,
+                Windows Defender, and Sophos EDR. Supports msfconsole payload generation and flexible command execution.
+            </div>
+            <div class="proj-tech">
+                <span>C#</span><span>C/C++</span><span>Encryption</span><span>Process Injection</span><span>EDR Bypass</span>
+            </div>
+        </div>
+        <div class="proj">
+            <div class="proj-l">Red Team Suite</div>
+            <div class="proj-t">Red Teaming Toolkit</div>
+            <div class="proj-d">
+                Suite of custom red teaming tools for internal and external penetration tests. Includes custom
+                scanners, privilege escalation scripts, lateral movement utilities, and post-exploitation modules
+                optimized for stealth with advanced evasion via API hooking and encrypted payload delivery.
+            </div>
+            <div class="proj-tech">
+                <span>Python</span><span>PowerShell</span><span>API Hooking</span><span>Payload Encryption</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ACHIEVEMENTS -->
+<section class="fade-s">
+    <div class="sl">Achievements</div>
+    <div class="st">Competition Results</div>
+    <div class="ach-g">
+        <div class="ach">
+            <div class="ach-i">🥇</div>
+            <div class="ach-t">1st Place</div>
+            <div class="ach-s">INPT CTF 2024</div>
+        </div>
+        <div class="ach">
+            <div class="ach-i">🥇</div>
+            <div class="ach-t">Top #1 Morocco</div>
+            <div class="ach-s">SIT Africa 2023</div>
+        </div>
+        <div class="ach">
+            <div class="ach-i">🌍</div>
+            <div class="ach-t">Top #69 Africa</div>
+            <div class="ach-s">picoCTF 2022</div>
+        </div>
+        <div class="ach">
+            <div class="ach-i">🏆</div>
+            <div class="ach-t">Top 1% Worldwide</div>
+            <div class="ach-s">TryHackMe 2023</div>
+        </div>
+        <div class="ach">
+            <div class="ach-i">💀</div>
+            <div class="ach-t">Elite Hacker</div>
+            <div class="ach-s">Hack The Box</div>
+        </div>
+    </div>
+
+    <!-- Platform Profiles -->
+    <div class="sl" style="margin-top:3rem">Platform Profiles</div>
+    <div class="plat-g">
+        <a href="https://app.hackthebox.com/users/4mr" target="_blank" class="plat">
+            <div class="plat-i">💀</div>
+            <div>
+                <div class="plat-n">Hack The Box</div>
+                <div class="plat-u">@4mr</div>
+            </div>
+        </a>
+        <a href="https://tryhackme.com/p/4mr" target="_blank" class="plat">
+            <div class="plat-i">🎯</div>
+            <div>
+                <div class="plat-n">TryHackMe</div>
+                <div class="plat-u">@4mr</div>
+            </div>
+        </a>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- EDUCATION -->
+<section class="fade-s">
+    <div class="sl">Education</div>
+    <div class="st">Academic Background</div>
+    <div class="tl">
+        <div class="tl-i">
+            <div class="exp-h">
+                <span class="exp-c">ENSA — National School of Applied Sciences</span>
+                <span class="exp-d">2018 — 2023</span>
+            </div>
+            <div class="exp-r">State Engineer in Computer Science · <span class="exp-loc">Tangier, Morocco</span></div>
+            <ul class="exp-ul">
+                <li>Specialization: Computer Engineering and Networks</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- CONTACT -->
+<section id="contact" class="fade-s">
+    <div class="sl">Contact</div>
+    <div class="st">Let's Work Together</div>
+    <div class="contact-g">
+        <div class="contact-t">
+            Looking for an experienced offensive security consultant for your next penetration test,
+            red team engagement, or security assessment? I'm available for freelance projects and
+            consulting work across Europe and Morocco.
+        </div>
+        <div class="contact-ls">
+            <a href="mailto:amro.niari@gmail.com" class="cl">
+                <span class="cl-i">✉</span>
+                <div>
+                    <div class="cl-l">Email</div>
+                    amro.niari@gmail.com
+                </div>
+            </a>
+            <a href="https://linkedin.com/in/amr-en-niari" target="_blank" class="cl">
+                <span class="cl-i">in</span>
+                <div>
+                    <div class="cl-l">LinkedIn</div>
+                    amr-en-niari
+                </div>
+            </a>
+            <a href="https://github.com/4mrr" target="_blank" class="cl">
+                <span class="cl-i">⌨</span>
+                <div>
+                    <div class="cl-l">GitHub</div>
+                    4mrr
+                </div>
+            </a>
+            <a href="tel:+212693117822" class="cl">
+                <span class="cl-i">☎</span>
+                <div>
+                    <div class="cl-l">Phone</div>
+                    +212 693 117 822
+                </div>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+    <p>Designed by <span class="a">4mr</span> · Red Team Operator · Rabat, Morocco</p>
+</footer>
+
+<script>
+const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('vis'); });
+}, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+document.querySelectorAll('.fade-s').forEach(el => obs.observe(el));
+document.querySelectorAll('.nav-l a').forEach(a => {
+    a.addEventListener('click', () => document.querySelector('.nav-l').classList.remove('open'));
+});
+</script>
+
+</body>
+</html>
