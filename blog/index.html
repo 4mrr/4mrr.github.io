@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4mr Blog — Red Team | Offensive Security | Hacking</title>
+    <meta name="description" content="4mr Blog — Red Team writeups, AD exploitation tricks, malware development, and offensive security research.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #06060b;
+            --bg2: #0c0c14;
+            --card: #111119;
+            --accent: #00ffaa;
+            --accent8: rgba(0,255,170,0.08);
+            --accent15: rgba(0,255,170,0.15);
+            --red: #ff2d55;
+            --orange: #ff8c00;
+            --blue: #00aaff;
+            --yellow: #ffd60a;
+            --cyan: #00e5ff;
+            --txt: #e4e4ee;
+            --dim: #6e6e82;
+            --mid: #9e9eb2;
+            --bdr: #1e1e2e;
+            --bdr2: #2a2a3e;
+            --mono: 'JetBrains Mono', monospace;
+            --head: 'Syne', sans-serif;
+            --body: 'Outfit', sans-serif;
+        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        ::selection{background:var(--accent);color:var(--bg)}
+        html{scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:var(--accent) var(--bg)}
+        body{background:var(--bg);color:var(--txt);font-family:var(--body);overflow-x:hidden;line-height:1.7}
+
+        body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");pointer-events:none;z-index:9999}
+        .grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(30,30,46,0.4) 1px,transparent 1px),linear-gradient(90deg,rgba(30,30,46,0.4) 1px,transparent 1px);background-size:80px 80px;opacity:.06;z-index:-1}
+
+        /* NAV */
+        nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:1rem 2.5rem;display:flex;justify-content:space-between;align-items:center;backdrop-filter:blur(20px);background:rgba(6,6,11,.88);border-bottom:1px solid var(--bdr)}
+        .logo{font-family:var(--mono);font-weight:700;font-size:1.3rem;color:var(--accent);text-decoration:none;letter-spacing:-.5px}
+        .logo .d{color:var(--dim);font-weight:400}
+        .nav-l{display:flex;gap:2rem;list-style:none}
+        .nav-l a{font-family:var(--mono);font-size:.72rem;color:var(--dim);text-decoration:none;text-transform:uppercase;letter-spacing:2px;transition:color .3s;position:relative}
+        .nav-l a:hover{color:var(--accent)}
+        .nav-l a::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:1px;background:var(--accent);transition:width .3s}
+        .nav-l a:hover::after{width:100%}
+        .ham{display:none;flex-direction:column;gap:5px;cursor:pointer;background:none;border:none;padding:5px}
+        .ham span{width:24px;height:2px;background:var(--txt);transition:all .3s}
+
+        /* HERO */
+        .blog-hero{padding:8rem 2.5rem 4rem;max-width:900px;margin:0 auto}
+        .blog-hero h1{font-family:var(--head);font-size:clamp(2.5rem,5vw,4rem);font-weight:800;letter-spacing:-2px;margin-bottom:.8rem}
+        .blog-hero h1 .a{color:var(--accent)}
+        .blog-hero p{color:var(--dim);font-size:1.1rem;max-width:600px;line-height:1.8}
+
+        /* TAGS FILTER */
+        .tags-filter{padding:0 2.5rem;max-width:900px;margin:0 auto 2rem;display:flex;flex-wrap:wrap;gap:.5rem}
+        .tag-btn{font-family:var(--mono);font-size:.7rem;padding:.4rem .9rem;background:var(--card);border:1px solid var(--bdr);color:var(--dim);cursor:pointer;text-transform:uppercase;letter-spacing:1px;transition:all .3s}
+        .tag-btn:hover,.tag-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent8)}
+
+        /* POSTS */
+        .posts{max-width:900px;margin:0 auto;padding:0 2.5rem 5rem}
+        .post-card{background:var(--card);border:1px solid var(--bdr);padding:2rem;margin-bottom:1.2rem;transition:all .4s;text-decoration:none;display:block;color:inherit;position:relative;overflow:hidden}
+        .post-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--accent);opacity:0;transition:opacity .3s}
+        .post-card:hover::before{opacity:1}
+        .post-card:hover{border-color:var(--accent);transform:translateX(5px);box-shadow:0 10px 40px var(--accent8)}
+
+        .post-meta{display:flex;align-items:center;gap:1rem;margin-bottom:.8rem;flex-wrap:wrap}
+        .post-date{font-family:var(--mono);font-size:.7rem;color:var(--accent);letter-spacing:1px}
+        .post-tag{font-family:var(--mono);font-size:.6rem;padding:.2rem .5rem;background:var(--accent8);color:var(--accent);text-transform:uppercase;letter-spacing:1px}
+        .post-tag.red{background:rgba(255,45,85,.1);color:var(--red)}
+        .post-tag.blue{background:rgba(0,170,255,.1);color:var(--blue)}
+        .post-tag.orange{background:rgba(255,140,0,.1);color:var(--orange)}
+        .post-tag.yellow{background:rgba(255,214,10,.1);color:var(--yellow)}
+        .post-tag.cyan{background:rgba(0,229,255,.1);color:var(--cyan)}
+
+        .post-title{font-family:var(--head);font-size:1.4rem;font-weight:700;margin-bottom:.6rem;letter-spacing:-.5px}
+        .post-excerpt{color:var(--dim);font-size:.92rem;line-height:1.8}
+        .post-read{font-family:var(--mono);font-size:.7rem;color:var(--accent);margin-top:1rem;display:inline-block;letter-spacing:1px;opacity:0;transition:opacity .3s}
+        .post-card:hover .post-read{opacity:1}
+
+        /* FOOTER */
+        footer{text-align:center;padding:3rem 2.5rem;border-top:1px solid var(--bdr);font-family:var(--mono);font-size:.72rem;color:var(--dim)}
+        footer .a{color:var(--accent)}
+
+        @media(max-width:900px){
+            nav{padding:1rem 1.5rem}
+            .blog-hero{padding:6rem 1.5rem 3rem}
+            .tags-filter{padding:0 1.5rem}
+            .posts{padding:0 1.5rem 4rem}
+            .nav-l{display:none}
+            .ham{display:flex}
+            .nav-l.open{display:flex;flex-direction:column;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border-bottom:1px solid var(--bdr);padding:1.5rem 2rem;gap:1.2rem}
+        }
+    </style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<!-- NAV -->
+<nav>
+    <a href="/" class="logo">4mr<span class="d">@blog</span></a>
+    <button class="ham" onclick="document.querySelector('.nav-l').classList.toggle('open')">
+        <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-l">
+        <li><a href="/">Portfolio</a></li>
+        <li><a href="/blog/">Blog</a></li>
+    </ul>
+</nav>
+
+<!-- HERO -->
+<div class="blog-hero">
+    <h1><span class="a">//</span> Blog</h1>
+    <p>Red team tricks, AD exploitation writeups, malware development, and offensive security research.</p>
+</div>
+
+<!-- TAG FILTER -->
+<div class="tags-filter">
+    <button class="tag-btn active" onclick="filterPosts('all')">All</button>
+    <button class="tag-btn" onclick="filterPosts('red-team')">Red Team</button>
+    <button class="tag-btn" onclick="filterPosts('active-directory')">Active Directory</button>
+    <button class="tag-btn" onclick="filterPosts('malware')">Malware Dev</button>
+    <button class="tag-btn" onclick="filterPosts('web')">Web Security</button>
+    <button class="tag-btn" onclick="filterPosts('ctf')">CTF</button>
+    <button class="tag-btn" onclick="filterPosts('tools')">Tools</button>
+</div>
+
+<!-- POSTS -->
+<div class="posts">
+
+    <!-- POST 1 - EXAMPLE -->
+    <a href="/blog/posts/ad-trust-exploitation.html" class="post-card" data-tags="active-directory red-team">
+        <div class="post-meta">
+            <span class="post-date">12 Feb 2026</span>
+            <span class="post-tag">Active Directory</span>
+            <span class="post-tag red">Red Team</span>
+        </div>
+        <div class="post-title">Exploiting Active Directory Trust Relationships Across Forests</div>
+        <div class="post-excerpt">A deep dive into abusing trust relationships between Active Directory forests for lateral movement. Covering SID filtering bypass, cross-forest Kerberoasting, and leveraging trust keys for golden ticket attacks.</div>
+        <span class="post-read">→ READ MORE</span>
+    </a>
+
+    <!-- POST 2 - EXAMPLE -->
+    <a href="/blog/posts/edr-bypass-techniques.html" class="post-card" data-tags="malware red-team">
+        <div class="post-meta">
+            <span class="post-date">08 Feb 2026</span>
+            <span class="post-tag orange">Malware Dev</span>
+            <span class="post-tag red">Red Team</span>
+        </div>
+        <div class="post-title">Bypassing EDR Solutions: Techniques from the Field</div>
+        <div class="post-excerpt">Real-world techniques for evading modern EDR solutions including Sophos, CrowdStrike, and Defender for Endpoint. Covering process injection, API unhooking, ETW patching, and encrypted payload delivery.</div>
+        <span class="post-read">→ READ MORE</span>
+    </a>
+
+    <!-- POST 3 - EXAMPLE -->
+    <a href="/blog/posts/htb-ifrit-prolab.html" class="post-card" data-tags="ctf active-directory">
+        <div class="post-meta">
+            <span class="post-date">02 Feb 2026</span>
+            <span class="post-tag cyan">CTF</span>
+            <span class="post-tag">Active Directory</span>
+        </div>
+        <div class="post-title">HTB Pro Lab Ifrit — Full Walkthrough</div>
+        <div class="post-excerpt">Complete walkthrough of the Hack The Box Ifrit Pro Lab. Covering multi-forest enumeration, relay attacks, EDR bypass, covert lateral movement, and achieving full domain compromise.</div>
+        <span class="post-read">→ READ MORE</span>
+    </a>
+
+</div>
+
+<!-- FOOTER -->
+<footer>
+    <p>Designed by <span class="a">4mr</span> · Red Team Operator · Rabat, Morocco</p>
+</footer>
+
+<script>
+function filterPosts(tag) {
+    document.querySelectorAll('.tag-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    document.querySelectorAll('.post-card').forEach(card => {
+        if (tag === 'all' || card.dataset.tags.includes(tag)) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+</script>
+
+</body>
+</html>
