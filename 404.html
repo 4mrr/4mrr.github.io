@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 — Access Denied | 4mr</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@700;800&family=Outfit:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #06060b;
+            --card: #111119;
+            --accent: #00ffaa;
+            --accent8: rgba(0,255,170,0.08);
+            --accent15: rgba(0,255,170,0.15);
+            --red: #ff2d55;
+            --yellow: #ffd60a;
+            --txt: #e4e4ee;
+            --dim: #6e6e82;
+            --bdr: #1e1e2e;
+            --mono: 'JetBrains Mono', monospace;
+            --head: 'Syne', sans-serif;
+            --body: 'Outfit', sans-serif;
+        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        ::selection{background:var(--accent);color:var(--bg)}
+        html,body{height:100%}
+        body{background:var(--bg);color:var(--txt);font-family:var(--body);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center}
+
+        /* Noise */
+        body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");pointer-events:none;z-index:9999}
+
+        /* Grid */
+        .grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(30,30,46,0.4) 1px,transparent 1px),linear-gradient(90deg,rgba(30,30,46,0.4) 1px,transparent 1px);background-size:80px 80px;opacity:.06;z-index:-1}
+
+        /* Scanline */
+        .scanline{position:fixed;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(255,45,85,.5),transparent);z-index:9998;animation:scan 4s linear infinite;opacity:.4}
+        @keyframes scan{0%{top:-2px}100%{top:100vh}}
+
+        /* Glitch */
+        @keyframes glitch1{
+            0%,100%{clip-path:inset(0 0 95% 0);transform:translate(-3px,0)}
+            20%{clip-path:inset(30% 0 50% 0);transform:translate(3px,0)}
+            40%{clip-path:inset(60% 0 10% 0);transform:translate(-2px,0)}
+            60%{clip-path:inset(10% 0 70% 0);transform:translate(4px,0)}
+            80%{clip-path:inset(80% 0 5% 0);transform:translate(-1px,0)}
+        }
+        @keyframes glitch2{
+            0%,100%{clip-path:inset(90% 0 0 0);transform:translate(3px,0)}
+            25%{clip-path:inset(20% 0 60% 0);transform:translate(-4px,0)}
+            50%{clip-path:inset(50% 0 30% 0);transform:translate(2px,0)}
+            75%{clip-path:inset(5% 0 80% 0);transform:translate(-3px,0)}
+        }
+        @keyframes flicker{
+            0%,100%{opacity:1}
+            3%{opacity:.4}
+            6%{opacity:1}
+            7%{opacity:.4}
+            9%{opacity:1}
+            50%{opacity:1}
+            52%{opacity:.6}
+            53%{opacity:1}
+        }
+        @keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0}}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes typing{from{width:0}to{width:100%}}
+        @keyframes matrixFall{0%{transform:translateY(-100%);opacity:0}10%{opacity:1}90%{opacity:1}100%{transform:translateY(100vh);opacity:0}}
+
+        /* Matrix rain */
+        .matrix{position:fixed;inset:0;z-index:-1;overflow:hidden;opacity:.07}
+        .matrix span{position:absolute;font-family:var(--mono);font-size:14px;color:var(--accent);animation:matrixFall linear infinite;writing-mode:vertical-rl}
+
+        /* Red glow orb */
+        .orb-red{position:fixed;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(255,45,85,.08),transparent 70%);pointer-events:none;z-index:-1;top:50%;left:50%;transform:translate(-50%,-50%)}
+
+        /* Main content */
+        .container{text-align:center;z-index:10;padding:2rem;max-width:700px}
+
+        /* 404 number */
+        .error-code{position:relative;font-family:var(--mono);font-size:clamp(8rem,20vw,14rem);font-weight:700;line-height:1;color:var(--red);margin-bottom:1rem;animation:flicker 3s infinite;text-shadow:0 0 40px rgba(255,45,85,.3),0 0 80px rgba(255,45,85,.1)}
+        .error-code::before,.error-code::after{content:'404';position:absolute;top:0;left:0;right:0;overflow:hidden}
+        .error-code::before{color:var(--accent);animation:glitch1 2.5s infinite;z-index:-1}
+        .error-code::after{color:var(--yellow);animation:glitch2 3s infinite;z-index:-2}
+
+        /* Terminal block */
+        .terminal{background:var(--card);border:1px solid var(--bdr);border-radius:8px;max-width:550px;margin:1.5rem auto;overflow:hidden;text-align:left;opacity:0;animation:fadeUp .6s .3s forwards}
+        .term-bar{display:flex;align-items:center;gap:7px;padding:10px 14px;background:rgba(17,17,25,.8);border-bottom:1px solid var(--bdr)}
+        .td{width:10px;height:10px;border-radius:50%}
+        .td:nth-child(1){background:var(--red)}.td:nth-child(2){background:var(--yellow)}.td:nth-child(3){background:var(--accent)}
+        .term-t{font-family:var(--mono);font-size:.65rem;color:var(--dim);margin-left:auto}
+        .term-b{padding:1.2rem;font-family:var(--mono);font-size:.78rem;line-height:2;color:var(--dim)}
+        .term-b .p{color:var(--accent)}
+        .term-b .c{color:var(--txt)}
+        .term-b .r{color:var(--red)}
+        .term-b .y{color:var(--yellow)}
+        .cur{display:inline-block;width:8px;height:14px;background:var(--accent);animation:blink 1s infinite;vertical-align:middle;margin-left:3px}
+
+        /* Subtitle */
+        .subtitle{font-family:var(--mono);font-size:.85rem;color:var(--dim);margin-bottom:2rem;opacity:0;animation:fadeUp .6s .5s forwards;letter-spacing:1px}
+
+        /* Buttons */
+        .btns{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;opacity:0;animation:fadeUp .6s .7s forwards}
+        .btn{font-family:var(--mono);font-size:.75rem;padding:.8rem 1.8rem;border:1px solid var(--accent);color:var(--accent);background:transparent;text-decoration:none;text-transform:uppercase;letter-spacing:2px;cursor:pointer;transition:all .3s;position:relative;overflow:hidden}
+        .btn::before{content:'';position:absolute;inset:0;background:var(--accent);transform:translateX(-101%);transition:transform .3s;z-index:-1}
+        .btn:hover::before{transform:translateX(0)}
+        .btn:hover{color:var(--bg)}
+        .btn-r{border-color:var(--red);color:var(--red)}
+        .btn-r::before{background:var(--red)}
+        .btn-r:hover{color:#fff}
+
+        /* ASCII skull */
+        .skull{font-family:var(--mono);font-size:.55rem;line-height:1.15;color:var(--red);opacity:.15;position:fixed;bottom:2rem;right:2rem;white-space:pre;z-index:1}
+
+        /* Footer */
+        .footer-note{position:fixed;bottom:1.5rem;font-family:var(--mono);font-size:.65rem;color:var(--dim);opacity:0;animation:fadeUp .6s .9s forwards;letter-spacing:1px}
+
+        @media(max-width:600px){
+            .error-code{font-size:6rem}
+            .terminal{margin:1rem}
+            .skull{display:none}
+        }
+    </style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="scanline"></div>
+<div class="orb-red"></div>
+
+<!-- Matrix rain -->
+<div class="matrix" id="matrix"></div>
+
+<div class="container">
+    <!-- 404 -->
+    <div class="error-code">404</div>
+
+    <!-- Terminal -->
+    <div class="terminal">
+        <div class="term-bar">
+            <div class="td"></div><div class="td"></div><div class="td"></div>
+            <span class="term-t">bash — 80x24</span>
+        </div>
+        <div class="term-b">
+            <span class="p">┌──(</span><span class="r">4mr</span><span class="p">㉿</span><span class="r">kali</span><span class="p">)-[</span><span class="c">/var/www</span><span class="p">]</span><br>
+            <span class="p">└─$</span> <span class="c">curl -I <span id="currentUrl"></span></span><br>
+            <span class="r">HTTP/1.1 404 Not Found</span><br>
+            <span>Server: <span class="y">4mr-security/1.0</span></span><br>
+            <span>X-Message: <span class="y">This page has been pwned or never existed</span></span><br>
+            <span>X-Hint: <span class="p">Try going back to base</span></span><br><br>
+            <span class="p">┌──(</span><span class="r">4mr</span><span class="p">㉿</span><span class="r">kali</span><span class="p">)-[</span><span class="c">/var/www</span><span class="p">]</span><br>
+            <span class="p">└─$</span> <span class="c">find / -name "page" -type f 2>/dev/null</span><br>
+            <span class="r">No results found.</span><br><br>
+            <span class="p">┌──(</span><span class="r">4mr</span><span class="p">㉿</span><span class="r">kali</span><span class="p">)-[</span><span class="c">/var/www</span><span class="p">]</span><br>
+            <span class="p">└─$</span> <span class="c">cd /home</span><span class="cur"></span>
+        </div>
+    </div>
+
+    <p class="subtitle">The page you're looking for doesn't exist or has been moved.</p>
+
+    <div class="btns">
+        <a href="/" class="btn">← Go Home</a>
+        <a href="/blog/" class="btn btn-r">Read Blog</a>
+    </div>
+</div>
+
+<!-- ASCII skull -->
+<pre class="skull">
+      ___
+    /     \
+   | () () |
+    \  ^  /
+     |||||
+     |||||
+</pre>
+
+<div class="footer-note">4mr@security — access_denied</div>
+
+<script>
+// Show current URL in terminal
+document.getElementById('currentUrl').textContent = window.location.href;
+
+// Matrix rain
+const matrix = document.getElementById('matrix');
+const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+function createDrop() {
+    const span = document.createElement('span');
+    span.textContent = Array.from({length: Math.floor(Math.random()*20)+10}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
+    span.style.left = Math.random()*100 + '%';
+    span.style.animationDuration = Math.random()*8+4 + 's';
+    span.style.fontSize = Math.random()*8+10 + 'px';
+    span.style.opacity = Math.random()*0.5+0.1;
+    matrix.appendChild(span);
+    setTimeout(() => span.remove(), 12000);
+}
+setInterval(createDrop, 200);
+
+// Glitch effect on hover
+const code = document.querySelector('.error-code');
+code.addEventListener('mouseenter', () => {
+    code.style.animation = 'none';
+    setTimeout(() => code.style.animation = 'flicker 0.5s infinite', 10);
+});
+code.addEventListener('mouseleave', () => {
+    code.style.animation = 'flicker 3s infinite';
+});
+</script>
+
+</body>
+</html>
