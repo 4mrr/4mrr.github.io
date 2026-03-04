@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Android SSL Pinning Bypass — Complete Guide | 4mr Blog</title>
+    <meta name="description" content="Complete guide to bypassing SSL pinning on Android apps during penetration testing. Covers Frida, Objection, apk-mitm, and manual patching techniques.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #06060b;
+            --bg2: #0c0c14;
+            --card: #111119;
+            --accent: #00ffaa;
+            --accent8: rgba(0,255,170,0.08);
+            --accent15: rgba(0,255,170,0.15);
+            --red: #ff2d55;
+            --orange: #ff8c00;
+            --blue: #00aaff;
+            --yellow: #ffd60a;
+            --cyan: #00e5ff;
+            --txt: #e4e4ee;
+            --dim: #6e6e82;
+            --mid: #9e9eb2;
+            --bdr: #1e1e2e;
+            --bdr2: #2a2a3e;
+            --mono: 'JetBrains Mono', monospace;
+            --head: 'Syne', sans-serif;
+            --body: 'Outfit', sans-serif;
+        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        ::selection{background:var(--accent);color:var(--bg)}
+        html{scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:var(--accent) var(--bg)}
+        body{background:var(--bg);color:var(--txt);font-family:var(--body);overflow-x:hidden;line-height:1.7}
+        body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");pointer-events:none;z-index:9999}
+        .grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(30,30,46,0.4) 1px,transparent 1px),linear-gradient(90deg,rgba(30,30,46,0.4) 1px,transparent 1px);background-size:80px 80px;opacity:.06;z-index:-1}
+
+        /* NAV */
+        nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:1rem 2.5rem;display:flex;justify-content:space-between;align-items:center;backdrop-filter:blur(20px);background:rgba(6,6,11,.88);border-bottom:1px solid var(--bdr)}
+        .logo{font-family:var(--mono);font-weight:700;font-size:1.3rem;color:var(--accent);text-decoration:none;letter-spacing:-.5px}
+        .logo .d{color:var(--dim);font-weight:400}
+        .nav-l{display:flex;gap:2rem;list-style:none}
+        .nav-l a{font-family:var(--mono);font-size:.72rem;color:var(--dim);text-decoration:none;text-transform:uppercase;letter-spacing:2px;transition:color .3s}
+        .nav-l a:hover{color:var(--accent)}
+
+        /* ARTICLE */
+        .article{max-width:800px;margin:0 auto;padding:8rem 2.5rem 5rem}
+        .article-back{font-family:var(--mono);font-size:.75rem;color:var(--accent);text-decoration:none;letter-spacing:1px;display:inline-block;margin-bottom:2rem;transition:transform .3s}
+        .article-back:hover{transform:translateX(-5px)}
+        .article-meta{display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap}
+        .article-date{font-family:var(--mono);font-size:.72rem;color:var(--accent);letter-spacing:1px}
+        .article-tag{font-family:var(--mono);font-size:.6rem;padding:.25rem .6rem;background:var(--accent8);color:var(--accent);text-transform:uppercase;letter-spacing:1px}
+        .article-tag.red{background:rgba(255,45,85,.1);color:var(--red)}
+        .article-tag.orange{background:rgba(255,140,0,.1);color:var(--orange)}
+        .article-tag.blue{background:rgba(0,170,255,.1);color:var(--blue)}
+        .article h1{font-family:var(--head);font-size:clamp(2rem,4vw,2.8rem);font-weight:800;letter-spacing:-1.5px;margin-bottom:1rem;line-height:1.2}
+        .article-author{display:flex;align-items:center;gap:.8rem;padding:1.5rem 0;border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr);margin-bottom:3rem}
+        .author-avatar{width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;color:var(--bg);font-size:.9rem}
+        .author-name{font-weight:600;font-size:.9rem}
+        .author-handle{font-family:var(--mono);font-size:.72rem;color:var(--dim)}
+
+        /* TOC */
+        .toc{background:var(--card);border:1px solid var(--bdr);padding:1.5rem 2rem;margin-bottom:3rem;border-radius:4px}
+        .toc-title{font-family:var(--mono);font-size:.72rem;color:var(--accent);text-transform:uppercase;letter-spacing:2px;margin-bottom:1rem}
+        .toc ul{list-style:none;padding:0}
+        .toc li{margin-bottom:.5rem}
+        .toc a{font-size:.9rem;color:var(--dim);text-decoration:none;transition:color .3s}
+        .toc a:hover{color:var(--accent)}
+        .toc a::before{content:'→ ';color:var(--accent);opacity:.4}
+
+        /* CONTENT */
+        .content{color:var(--mid);font-size:1.05rem;line-height:2}
+        .content p{margin-bottom:1.5rem}
+        .content h2{font-family:var(--head);font-size:1.6rem;font-weight:700;color:var(--txt);margin:3rem 0 1.2rem;letter-spacing:-.5px;padding-bottom:.5rem;border-bottom:1px solid var(--bdr)}
+        .content h3{font-family:var(--head);font-size:1.2rem;font-weight:600;color:var(--txt);margin:2rem 0 1rem}
+        .content strong{color:var(--txt);font-weight:600}
+        .content a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent8);transition:border-color .3s}
+        .content a:hover{border-color:var(--accent)}
+        .content code{font-family:var(--mono);font-size:.85rem;background:var(--card);color:var(--accent);padding:2px 8px;border-radius:3px}
+        .content pre{background:var(--card);border:1px solid var(--bdr);padding:1.5rem;margin:1.5rem 0;overflow-x:auto;border-radius:4px;position:relative}
+        .content pre code{background:none;padding:0;color:var(--txt);font-size:.8rem;line-height:1.8}
+        .content pre::before{content:attr(data-lang);position:absolute;top:.6rem;right:.8rem;font-family:var(--mono);font-size:.6rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px}
+        .content blockquote{border-left:3px solid var(--accent);background:var(--card);padding:1.2rem 1.5rem;margin:1.5rem 0;color:var(--dim);font-style:italic}
+        .content ul,.content ol{margin:1rem 0 1.5rem 1.5rem;color:var(--mid)}
+        .content li{margin-bottom:.5rem}
+        .content li::marker{color:var(--accent)}
+        .content img{max-width:100%;border:1px solid var(--bdr);margin:1.5rem 0;border-radius:4px}
+        .content .note{background:var(--accent8);border:1px solid rgba(0,255,170,.2);padding:1.2rem 1.5rem;margin:1.5rem 0;border-radius:4px;font-size:.92rem}
+        .content .note::before{content:'💡 ';font-size:1rem}
+        .content .warning{background:rgba(255,45,85,.08);border:1px solid rgba(255,45,85,.2);padding:1.2rem 1.5rem;margin:1.5rem 0;border-radius:4px;font-size:.92rem;color:var(--red)}
+        .content .warning::before{content:'⚠️ ';font-size:1rem}
+
+        /* ERROR TABLE */
+        .err-table{width:100%;border-collapse:collapse;margin:1.5rem 0;font-size:.88rem}
+        .err-table th{font-family:var(--mono);font-size:.7rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);text-align:left;padding:.8rem 1rem;border-bottom:2px solid var(--accent);background:var(--card)}
+        .err-table td{padding:.8rem 1rem;border-bottom:1px solid var(--bdr);color:var(--mid);vertical-align:top}
+        .err-table td code{font-size:.75rem}
+        .err-table tr:hover td{background:var(--card)}
+
+        /* TOOLS TABLE */
+        .tools-table{width:100%;border-collapse:collapse;margin:1.5rem 0;font-size:.88rem}
+        .tools-table th{font-family:var(--mono);font-size:.7rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);text-align:left;padding:.8rem 1rem;border-bottom:2px solid var(--accent);background:var(--card)}
+        .tools-table td{padding:.8rem 1rem;border-bottom:1px solid var(--bdr);color:var(--mid)}
+        .tools-table tr:hover td{background:var(--card)}
+
+        /* FLOW DIAGRAM */
+        .flow{background:var(--card);border:1px solid var(--bdr);padding:2rem;margin:2rem 0;border-radius:4px;font-family:var(--mono);font-size:.8rem;line-height:2.2;color:var(--dim);overflow-x:auto;white-space:pre}
+        .flow .step{color:var(--accent)}
+        .flow .fail{color:var(--red)}
+        .flow .arrow{color:var(--yellow)}
+
+        /* POST NAV */
+        .post-nav{display:flex;justify-content:space-between;margin-top:4rem;padding-top:2rem;border-top:1px solid var(--bdr);gap:1rem}
+        .post-nav a{font-family:var(--mono);font-size:.75rem;color:var(--dim);text-decoration:none;transition:color .3s;letter-spacing:1px}
+        .post-nav a:hover{color:var(--accent)}
+
+        footer{text-align:center;padding:3rem 2.5rem;border-top:1px solid var(--bdr);font-family:var(--mono);font-size:.72rem;color:var(--dim)}
+        footer .a{color:var(--accent)}
+
+        @media(max-width:768px){
+            .article{padding:6rem 1.5rem 4rem}
+            nav{padding:1rem 1.5rem}
+            .err-table,.tools-table{font-size:.78rem}
+            .err-table td,.err-table th,.tools-table td,.tools-table th{padding:.5rem .6rem}
+        }
+    </style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<!-- NAV -->
+<nav>
+    <a href="/" class="logo">4mr<span class="d">@blog</span></a>
+    <ul class="nav-l">
+        <li><a href="/">Portfolio</a></li>
+        <li><a href="/blog/">Blog</a></li>
+    </ul>
+</nav>
+
+<!-- ARTICLE -->
+<article class="article">
+    <a href="/blog/" class="article-back">← Back to posts</a>
+
+    <div class="article-meta">
+        <span class="article-date">Mar 2026</span>
+        <span class="article-tag orange">Mobile Security</span>
+        <span class="article-tag red">Pentest</span>
+        <span class="article-tag blue">Android</span>
+    </div>
+
+    <h1>Android SSL Pinning Bypass — Complete Troubleshooting Guide</h1>
+
+    <div class="article-author">
+        <div class="author-avatar">4m</div>
+        <div>
+            <div class="author-name">Amr En-Niari</div>
+            <div class="author-handle">@4mrr · 12 min read</div>
+        </div>
+    </div>
+
+    <!-- TOC -->
+    <div class="toc">
+        <div class="toc-title">Table of Contents</div>
+        <ul>
+            <li><a href="#emulator">Android Emulator Setup Issues</a></li>
+            <li><a href="#frida">Frida Server Setup</a></li>
+            <li><a href="#apk-patching">APK Patching Issues</a></li>
+            <li><a href="#bypass-methods">SSL Pinning Bypass Methods</a></li>
+            <li><a href="#quick-ref">Quick Reference Table</a></li>
+            <li><a href="#tools">Required Tools</a></li>
+            <li><a href="#workflow">Workflow Summary</a></li>
+        </ul>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+        <p>
+            During mobile penetration testing engagements, one of the most common challenges is bypassing SSL pinning
+            to intercept HTTPS traffic. This guide documents the common issues, errors, and solutions I've encountered
+            across multiple Android mobile assessments.
+        </p>
+
+        <div class="warning">
+            This guide is intended for authorized penetration testing only. Always ensure you have proper written authorization before testing any application.
+        </div>
+
+        <!-- ===================== SECTION 1 ===================== -->
+        <h2 id="emulator">1. Android Emulator Setup Issues</h2>
+
+        <h3>1.1 ADB Root Access Denied</h3>
+
+        <p><strong>Error:</strong></p>
+        <pre data-lang="bash"><code>adbd cannot run as root in production builds</code></pre>
+
+        <p>
+            This happens when using a <strong>Google Play system image</strong> instead of a <strong>Google APIs image</strong>.
+            Google Play images are production builds and do not allow root access.
+        </p>
+
+        <p><strong>Solution:</strong></p>
+        <ol>
+            <li>Open Android Studio → SDK Manager → SDK Platforms → Show Package Details</li>
+            <li>Download an image labeled <strong>"Google APIs"</strong> (NOT "Google Play System Image")</li>
+            <li>Create a new AVD using this image</li>
+        </ol>
+
+        <p><strong>Command line alternative:</strong></p>
+        <pre data-lang="bash"><code>sdkmanager "system-images;android-30;google_apis;x86_64"
+avdmanager create avd -n pentest -k "system-images;android-30;google_apis;x86_64"</code></pre>
+
+        <!-- ===================== SECTION 2 ===================== -->
+        <h2 id="frida">2. Frida Server Setup</h2>
+
+        <h3>2.1 Uploading Frida Server to Emulator</h3>
+
+        <p>First, check the emulator architecture:</p>
+        <pre data-lang="bash"><code>adb shell getprop ro.product.cpu.abi</code></pre>
+
+        <p>Download the matching frida-server from GitHub releases. Make sure the server version matches your local Frida version:</p>
+        <pre data-lang="bash"><code># Check your frida version
+frida --version
+
+# Download matching server (example for x86_64)
+wget https://github.com/frida/frida/releases/download/16.7.19/frida-server-16.7.19-android-x86_64.xz
+xz -d frida-server-16.7.19-android-x86_64.xz</code></pre>
+
+        <p>Push to the device and set permissions:</p>
+        <pre data-lang="bash"><code>adb root
+adb push frida-server-16.7.19-android-x86_64 /data/local/tmp/frida-server
+adb shell chmod 755 /data/local/tmp/frida-server
+adb shell /data/local/tmp/frida-server &</code></pre>
+
+        <p>Verify it's running:</p>
+        <pre data-lang="bash"><code>frida-ps -U</code></pre>
+
+        <h3>2.2 SELinux Policy Error</h3>
+
+        <p><strong>Error:</strong></p>
+        <pre data-lang="bash"><code>Unable to load SELinux policy from the kernel: Failed to open file
+"/sys/fs/selinux/policy": Permission denied</code></pre>
+
+        <p>
+            SELinux is blocking Frida server execution. Disable enforcement before running frida-server:
+        </p>
+        <pre data-lang="bash"><code>adb root
+adb shell setenforce 0
+adb shell /data/local/tmp/frida-server &</code></pre>
+
+        <div class="note">
+            Sometimes this warning is non-fatal and frida-server runs anyway. Test with: <code>frida-ps -U</code>
+        </div>
+
+        <!-- ===================== SECTION 3 ===================== -->
+        <h2 id="apk-patching">3. APK Patching Issues</h2>
+
+        <h3>3.1 Extracting APK from Emulator</h3>
+
+        <pre data-lang="bash"><code># Find APK path
+adb shell pm path com.target.app
+
+# Pull the APK
+adb pull /data/app/com.target.app-xxxx/base.apk ./target.apk</code></pre>
+
+        <p><strong>For split APKs (multiple paths):</strong></p>
+        <pre data-lang="bash"><code>adb shell pm path com.target.app | while read -r line; do
+  adb pull $(echo $line | cut -d: -f2)
+done</code></pre>
+
+        <h3>3.2 Invalid Filename Characters ($)</h3>
+
+        <p><strong>Error:</strong></p>
+        <pre data-lang="bash"><code>W: res/drawable/$avd_hide_password__0.xml: Invalid file name:
+must contain only [a-z0-9_.]</code></pre>
+
+        <p>Apktool cannot handle filenames containing the <code>$</code> character.</p>
+
+        <p><strong>Solution:</strong></p>
+        <pre data-lang="bash"><code># Decompile
+apktool d merged.apk -o source
+
+# Rename files with $ to _
+cd source
+find . -name '*\$*' -exec bash -c 'mv "$0" "${0//\$/_}"' {} \;
+
+# Fix references in XML files
+grep -rl '\$' res/ | xargs sed -i 's/\$/_/g'</code></pre>
+
+        <h3>3.3 Corrupted PNG Files</h3>
+
+        <p><strong>Error:</strong></p>
+        <pre data-lang="bash"><code>W: libpng error: IDAT: invalid bit length repeat
+W: ERROR: Failure processing PNG image /path/to/image.png
+W: libpng error: bad adaptive filter value
+W: libpng error: IDAT: CRC error</code></pre>
+
+        <p>
+            PNG files became corrupted during decompilation or were optimized in a way apktool cannot process.
+            Skip apktool entirely and use <strong>apk-mitm</strong> which modifies the APK directly:
+        </p>
+        <pre data-lang="bash"><code>npm install -g apk-mitm
+apk-mitm merged.apk</code></pre>
+
+        <h3>3.4 String Formatting Errors</h3>
+
+        <p><strong>Error:</strong></p>
+        <pre data-lang="bash"><code>W: /path/strings.xml:371: error: Multiple substitutions specified
+in non-positional format; did you mean to add the formatted="false" attribute?</code></pre>
+
+        <p>
+            Add <code>formatted="false"</code> to the problematic string, or use <strong>apk-mitm</strong> to bypass this issue entirely.
+        </p>
+
+        <h3>3.5 Merging Split APKs</h3>
+
+        <pre data-lang="bash"><code># Using APKEditor
+java -jar APKEditor.jar m -i ./split_apks/ -o merged.apk</code></pre>
+
+        <!-- ===================== SECTION 4 ===================== -->
+        <h2 id="bypass-methods">4. SSL Pinning Bypass Methods</h2>
+
+        <h3>Method 1: Frida + Objection (Fastest)</h3>
+
+        <p>The quickest approach when Frida is already running on the device:</p>
+        <pre data-lang="bash"><code>objection -g com.target.app explore
+
+# Then run inside objection:
+android sslpinning disable</code></pre>
+
+        <h3>Method 2: Universal Frida Script</h3>
+
+        <p>Use the community-maintained unpinning script from Frida Codeshare:</p>
+        <pre data-lang="bash"><code>frida -U --codeshare akabe1/frida-multiple-unpinning -f com.target.app</code></pre>
+
+        <h3>Method 3: Custom Bypass Script</h3>
+
+        <p>Save this as <code>bypass.js</code> for apps with custom pinning implementations:</p>
+        <pre data-lang="javascript"><code>Java.perform(function() {
+    // Custom TrustManager that accepts all certificates
+    var TrustManager = Java.registerClass({
+        name: 'dev.asd.test.TrustManager',
+        implements: [Java.use('javax.net.ssl.X509TrustManager')],
+        methods: {
+            checkClientTrusted: function(chain, authType) {},
+            checkServerTrusted: function(chain, authType) {},
+            getAcceptedIssuers: function() { return []; }
+        }
+    });
+
+    var TrustManagers = [TrustManager.$new()];
+    var SSLContext = Java.use('javax.net.ssl.SSLContext');
+    var SSLContext_init = SSLContext.init.overload(
+        '[Ljavax.net.ssl.KeyManager;',
+        '[Ljavax.net.ssl.TrustManager;',
+        'java.security.SecureRandom'
+    );
+
+    SSLContext_init.implementation = function(km, tm, sr) {
+        SSLContext_init.call(this, km, TrustManagers, sr);
+    };
+
+    // OkHttp CertificatePinner bypass
+    try {
+        var CertificatePinner = Java.use('okhttp3.CertificatePinner');
+        CertificatePinner.check.overload(
+            'java.lang.String', 'java.util.List'
+        ).implementation = function() {};
+        CertificatePinner.check.overload(
+            'java.lang.String', 'java.security.cert.Certificate'
+        ).implementation = function() {};
+    } catch(e) {
+        console.log("[*] OkHttp CertificatePinner not found");
+    }
+});</code></pre>
+
+        <p>Run with:</p>
+        <pre data-lang="bash"><code>frida -U -f com.target.app -l bypass.js</code></pre>
+
+        <h3>Method 4: APK Patching with apk-mitm</h3>
+
+        <p>When Frida is not an option (e.g. Frida detection), patch the APK directly:</p>
+        <pre data-lang="bash"><code>npm install -g apk-mitm
+apk-mitm merged.apk
+
+# Uninstall original and install patched
+adb uninstall com.target.app
+adb install merged-patched.apk</code></pre>
+
+        <h3>Method 5: Manual network_security_config.xml Patch</h3>
+
+        <p>After decompiling with <code>apktool d merged.apk -o source/</code>, edit <code>res/xml/network_security_config.xml</code>:</p>
+        <pre data-lang="xml"><code>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;network-security-config&gt;
+    &lt;base-config cleartextTrafficPermitted="true"&gt;
+        &lt;trust-anchors&gt;
+            &lt;certificates src="system"/&gt;
+            &lt;certificates src="user"/&gt;
+        &lt;/trust-anchors&gt;
+    &lt;/base-config&gt;
+&lt;/network-security-config&gt;</code></pre>
+
+        <p>Then rebuild and sign:</p>
+        <pre data-lang="bash"><code># Rebuild
+apktool b source -o patched.apk
+
+# Create keystore
+keytool -genkey -v -keystore test.keystore -alias test \
+  -keyalg RSA -keysize 2048 -validity 10000 \
+  -storepass password -keypass password -dname "CN=test"
+
+# Sign
+apksigner sign --ks test.keystore --ks-pass pass:password patched.apk
+
+# Install
+adb uninstall com.target.app
+adb install patched.apk</code></pre>
+
+        <!-- ===================== SECTION 5 ===================== -->
+        <h2 id="quick-ref">5. Quick Reference: Error → Solution</h2>
+
+        <table class="err-table">
+            <thead>
+                <tr>
+                    <th>Error</th>
+                    <th>Solution</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>adbd cannot run as root</code></td>
+                    <td>Use Google APIs image, not Google Play</td>
+                </tr>
+                <tr>
+                    <td><code>SELinux policy permission denied</code></td>
+                    <td><code>adb shell setenforce 0</code></td>
+                </tr>
+                <tr>
+                    <td><code>Invalid filename ($)</code></td>
+                    <td>Rename <code>$</code> to <code>_</code> in filenames</td>
+                </tr>
+                <tr>
+                    <td><code>libpng errors / corrupted PNG</code></td>
+                    <td>Use apk-mitm instead of apktool</td>
+                </tr>
+                <tr>
+                    <td><code>Multiple substitutions error</code></td>
+                    <td>Add <code>formatted="false"</code> or use apk-mitm</td>
+                </tr>
+                <tr>
+                    <td>APK on emulator, not local</td>
+                    <td><code>adb shell pm path &lt;pkg&gt;</code> then <code>adb pull</code></td>
+                </tr>
+                <tr>
+                    <td><code>aapt: Could not extract resource</code></td>
+                    <td>Install aapt: <code>apt install aapt</code></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- ===================== SECTION 6 ===================== -->
+        <h2 id="tools">6. Required Tools</h2>
+
+        <table class="tools-table">
+            <thead>
+                <tr>
+                    <th>Tool</th>
+                    <th>Installation</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Frida</td>
+                    <td><code>pip install frida-tools</code></td>
+                </tr>
+                <tr>
+                    <td>Objection</td>
+                    <td><code>pip install objection</code></td>
+                </tr>
+                <tr>
+                    <td>apk-mitm</td>
+                    <td><code>npm install -g apk-mitm</code></td>
+                </tr>
+                <tr>
+                    <td>apktool</td>
+                    <td><code>apt install apktool</code></td>
+                </tr>
+                <tr>
+                    <td>apksigner</td>
+                    <td>Part of Android SDK build-tools</td>
+                </tr>
+                <tr>
+                    <td>Android SDK</td>
+                    <td>With Google APIs images</td>
+                </tr>
+                <tr>
+                    <td>Burp Suite</td>
+                    <td>For traffic interception</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- ===================== SECTION 7 ===================== -->
+        <h2 id="workflow">7. Workflow Summary</h2>
+
+        <div class="flow"><span class="step">┌─────────────────────────────────────────────────────────────┐</span>
+<span class="step">│              SSL Pinning Bypass Flow                        │</span>
+<span class="step">├─────────────────────────────────────────────────────────────┤</span>
+<span class="step">│                                                             │</span>
+<span class="step">│</span>  1. Setup Emulator (Google APIs image)
+<span class="step">│</span>         <span class="arrow">↓</span>
+<span class="step">│</span>  2. Install Frida Server
+<span class="step">│</span>         <span class="arrow">↓</span>
+<span class="step">│</span>  3. Try: objection → android sslpinning disable
+<span class="step">│</span>         <span class="arrow">↓</span>
+<span class="step">│</span>  4. <span class="fail">If fails</span> → Try Frida scripts (codeshare/custom)
+<span class="step">│</span>         <span class="arrow">↓</span>
+<span class="step">│</span>  5. <span class="fail">If fails</span> → Patch APK with apk-mitm
+<span class="step">│</span>         <span class="arrow">↓</span>
+<span class="step">│</span>  6. Configure Burp proxy and intercept traffic
+<span class="step">│                                                             │</span>
+<span class="step">└─────────────────────────────────────────────────────────────┘</span></div>
+
+        <p>
+            The key takeaway is to <strong>start simple</strong> — Objection and Frida scripts handle most apps.
+            Only fall back to APK patching when runtime approaches fail, typically due to Frida detection
+            or root detection mechanisms.
+        </p>
+
+        <blockquote>
+            Always document your bypass methodology. It helps the client understand the risk and
+            shows that their pinning implementation needs improvement.
+        </blockquote>
+
+    </div>
+
+    <!-- POST NAV -->
+    <div class="post-nav">
+        <a href="/blog/">← All posts</a>
+        <a href="/blog/posts/ad-trust-exploitation.html">Next: AD Trust Exploitation →</a>
+    </div>
+</article>
+
+<!-- FOOTER -->
+<footer>
+    <p>Designed by <span class="a">4mr</span> · Red Team Operator · Rabat, Morocco</p>
+</footer>
+
+</body>
+</html>
