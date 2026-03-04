@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bypassing Android Forced Update Dialog — 4mr Blog</title>
+    <meta name="description" content="How to bypass forced update dialogs on Android applications during mobile penetration testing using Frida hooking techniques.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #06060b;
+            --bg2: #0c0c14;
+            --card: #111119;
+            --accent: #00ffaa;
+            --accent8: rgba(0,255,170,0.08);
+            --accent15: rgba(0,255,170,0.15);
+            --red: #ff2d55;
+            --orange: #ff8c00;
+            --blue: #00aaff;
+            --yellow: #ffd60a;
+            --cyan: #00e5ff;
+            --txt: #e4e4ee;
+            --dim: #6e6e82;
+            --mid: #9e9eb2;
+            --bdr: #1e1e2e;
+            --bdr2: #2a2a3e;
+            --mono: 'JetBrains Mono', monospace;
+            --head: 'Syne', sans-serif;
+            --body: 'Outfit', sans-serif;
+        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        ::selection{background:var(--accent);color:var(--bg)}
+        html{scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:var(--accent) var(--bg)}
+        body{background:var(--bg);color:var(--txt);font-family:var(--body);overflow-x:hidden;line-height:1.7}
+        body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");pointer-events:none;z-index:9999}
+        .grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(30,30,46,0.4) 1px,transparent 1px),linear-gradient(90deg,rgba(30,30,46,0.4) 1px,transparent 1px);background-size:80px 80px;opacity:.06;z-index:-1}
+
+        /* NAV */
+        nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:1rem 2.5rem;display:flex;justify-content:space-between;align-items:center;backdrop-filter:blur(20px);background:rgba(6,6,11,.88);border-bottom:1px solid var(--bdr)}
+        .logo{font-family:var(--mono);font-weight:700;font-size:1.3rem;color:var(--accent);text-decoration:none;letter-spacing:-.5px}
+        .logo .d{color:var(--dim);font-weight:400}
+        .nav-l{display:flex;gap:2rem;list-style:none}
+        .nav-l a{font-family:var(--mono);font-size:.72rem;color:var(--dim);text-decoration:none;text-transform:uppercase;letter-spacing:2px;transition:color .3s}
+        .nav-l a:hover{color:var(--accent)}
+
+        /* ARTICLE */
+        .article{max-width:800px;margin:0 auto;padding:8rem 2.5rem 5rem}
+        .article-back{font-family:var(--mono);font-size:.75rem;color:var(--accent);text-decoration:none;letter-spacing:1px;display:inline-block;margin-bottom:2rem;transition:transform .3s}
+        .article-back:hover{transform:translateX(-5px)}
+        .article-meta{display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap}
+        .article-date{font-family:var(--mono);font-size:.72rem;color:var(--accent);letter-spacing:1px}
+        .article-tag{font-family:var(--mono);font-size:.6rem;padding:.25rem .6rem;text-transform:uppercase;letter-spacing:1px}
+        .article-tag.green{background:var(--accent8);color:var(--accent)}
+        .article-tag.red{background:rgba(255,45,85,.1);color:var(--red)}
+        .article-tag.orange{background:rgba(255,140,0,.1);color:var(--orange)}
+        .article-tag.blue{background:rgba(0,170,255,.1);color:var(--blue)}
+        .article h1{font-family:var(--head);font-size:clamp(2rem,4vw,2.8rem);font-weight:800;letter-spacing:-1.5px;margin-bottom:1rem;line-height:1.2}
+        .article-author{display:flex;align-items:center;gap:.8rem;padding:1.5rem 0;border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr);margin-bottom:3rem}
+        .author-avatar{width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;color:var(--bg);font-size:.9rem}
+        .author-name{font-weight:600;font-size:.9rem}
+        .author-handle{font-family:var(--mono);font-size:.72rem;color:var(--dim)}
+
+        /* TOC */
+        .toc{background:var(--card);border:1px solid var(--bdr);padding:1.5rem 2rem;margin-bottom:3rem;border-radius:4px}
+        .toc-title{font-family:var(--mono);font-size:.72rem;color:var(--accent);text-transform:uppercase;letter-spacing:2px;margin-bottom:1rem}
+        .toc ul{list-style:none;padding:0}
+        .toc li{margin-bottom:.5rem}
+        .toc a{font-size:.9rem;color:var(--dim);text-decoration:none;transition:color .3s}
+        .toc a:hover{color:var(--accent)}
+        .toc a::before{content:'→ ';color:var(--accent);opacity:.4}
+
+        /* CONTENT */
+        .content{color:var(--mid);font-size:1.05rem;line-height:2}
+        .content p{margin-bottom:1.5rem}
+        .content h2{font-family:var(--head);font-size:1.6rem;font-weight:700;color:var(--txt);margin:3rem 0 1.2rem;letter-spacing:-.5px;padding-bottom:.5rem;border-bottom:1px solid var(--bdr)}
+        .content h3{font-family:var(--head);font-size:1.2rem;font-weight:600;color:var(--txt);margin:2rem 0 1rem}
+        .content strong{color:var(--txt);font-weight:600}
+        .content a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent8);transition:border-color .3s}
+        .content a:hover{border-color:var(--accent)}
+        .content code{font-family:var(--mono);font-size:.85rem;background:var(--card);color:var(--accent);padding:2px 8px;border-radius:3px}
+        .content pre{background:var(--card);border:1px solid var(--bdr);padding:1.5rem;margin:1.5rem 0;overflow-x:auto;border-radius:4px;position:relative}
+        .content pre code{background:none;padding:0;color:var(--txt);font-size:.8rem;line-height:1.8}
+        .content pre::before{content:attr(data-lang);position:absolute;top:.6rem;right:.8rem;font-family:var(--mono);font-size:.6rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px}
+        .content blockquote{border-left:3px solid var(--accent);background:var(--card);padding:1.2rem 1.5rem;margin:1.5rem 0;color:var(--dim);font-style:italic}
+        .content ul,.content ol{margin:1rem 0 1.5rem 1.5rem;color:var(--mid)}
+        .content li{margin-bottom:.5rem}
+        .content li::marker{color:var(--accent)}
+        .content .note{background:var(--accent8);border:1px solid rgba(0,255,170,.2);padding:1.2rem 1.5rem;margin:1.5rem 0;border-radius:4px;font-size:.92rem}
+        .content .note::before{content:'💡 ';font-size:1rem}
+        .content .warning{background:rgba(255,45,85,.08);border:1px solid rgba(255,45,85,.2);padding:1.2rem 1.5rem;margin:1.5rem 0;border-radius:4px;font-size:.92rem;color:var(--red)}
+        .content .warning::before{content:'⚠️ ';font-size:1rem}
+        .content .success{background:rgba(0,255,170,.06);border:1px solid rgba(0,255,170,.2);padding:1.2rem 1.5rem;margin:1.5rem 0;border-radius:4px;font-size:.92rem;color:var(--accent)}
+        .content .success::before{content:'✅ ';font-size:1rem}
+
+        /* SCENARIO BOX */
+        .scenario{background:linear-gradient(135deg,var(--card),rgba(255,140,0,.05));border:1px solid rgba(255,140,0,.2);padding:2rem;margin:2rem 0;border-radius:6px}
+        .scenario-title{font-family:var(--mono);font-size:.75rem;color:var(--orange);text-transform:uppercase;letter-spacing:2px;margin-bottom:.8rem}
+        .scenario p{color:var(--mid);margin-bottom:0;font-size:.95rem;line-height:1.8}
+
+        /* STEP BOXES */
+        .step-box{background:var(--card);border:1px solid var(--bdr);border-radius:6px;margin:2rem 0;overflow:hidden}
+        .step-header{display:flex;align-items:center;gap:.8rem;padding:1rem 1.5rem;border-bottom:1px solid var(--bdr);background:rgba(0,255,170,.03)}
+        .step-num{font-family:var(--mono);font-size:.7rem;font-weight:700;width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--bg);display:flex;align-items:center;justify-content:center}
+        .step-title{font-family:var(--head);font-size:1rem;font-weight:600}
+        .step-body{padding:1.5rem}
+        .step-body p{margin-bottom:1rem;color:var(--mid);font-size:.95rem}
+        .step-body pre{margin:.8rem 0}
+
+        /* RESULT COMPARISON */
+        .compare{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:2rem 0}
+        .compare-box{background:var(--card);border:1px solid var(--bdr);padding:1.5rem;border-radius:4px;text-align:center}
+        .compare-box.before{border-color:rgba(255,45,85,.3)}
+        .compare-box.after{border-color:rgba(0,255,170,.3)}
+        .compare-label{font-family:var(--mono);font-size:.7rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:.8rem;display:block}
+        .compare-label.red{color:var(--red)}
+        .compare-label.green{color:var(--accent)}
+        .compare-desc{font-size:.88rem;color:var(--dim);line-height:1.6}
+        .compare-icon{font-size:2.5rem;margin-bottom:.5rem}
+
+        /* POST NAV */
+        .post-nav{display:flex;justify-content:space-between;margin-top:4rem;padding-top:2rem;border-top:1px solid var(--bdr);gap:1rem}
+        .post-nav a{font-family:var(--mono);font-size:.75rem;color:var(--dim);text-decoration:none;transition:color .3s;letter-spacing:1px}
+        .post-nav a:hover{color:var(--accent)}
+
+        footer{text-align:center;padding:3rem 2.5rem;border-top:1px solid var(--bdr);font-family:var(--mono);font-size:.72rem;color:var(--dim)}
+        footer .a{color:var(--accent)}
+
+        @media(max-width:768px){
+            .article{padding:6rem 1.5rem 4rem}
+            nav{padding:1rem 1.5rem}
+            .compare{grid-template-columns:1fr}
+        }
+    </style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<!-- NAV -->
+<nav>
+    <a href="/" class="logo">4mr<span class="d">@blog</span></a>
+    <ul class="nav-l">
+        <li><a href="/">Portfolio</a></li>
+        <li><a href="/blog/">Blog</a></li>
+    </ul>
+</nav>
+
+<!-- ARTICLE -->
+<article class="article">
+    <a href="/blog/" class="article-back">← Back to posts</a>
+
+    <div class="article-meta">
+        <span class="article-date">Mar 2026</span>
+        <span class="article-tag orange">Mobile Security</span>
+        <span class="article-tag red">Frida</span>
+        <span class="article-tag blue">Android</span>
+    </div>
+
+    <h1>Bypassing Android Forced Update Dialogs with Frida</h1>
+
+    <div class="article-author">
+        <div class="author-avatar">4m</div>
+        <div>
+            <div class="author-name">Amr En-Niari</div>
+            <div class="author-handle">@4mrr · 6 min read</div>
+        </div>
+    </div>
+
+    <!-- TOC -->
+    <div class="toc">
+        <div class="toc-title">Table of Contents</div>
+        <ul>
+            <li><a href="#problem">The Problem</a></li>
+            <li><a href="#how-it-works">How Forced Updates Work</a></li>
+            <li><a href="#method1">Method 1: Hooking Dialog.show()</a></li>
+            <li><a href="#method2">Method 2: Blocking Play Store Version Check</a></li>
+            <li><a href="#method3">Method 3: Spoofing Package Version</a></li>
+            <li><a href="#method4">Method 4: APK Patching (Permanent)</a></li>
+            <li><a href="#method5">Method 5: Network-Level Block</a></li>
+            <li><a href="#results">Results</a></li>
+            <li><a href="#takeaways">Key Takeaways</a></li>
+        </ul>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+        <!-- SCENARIO -->
+        <div class="scenario">
+            <div class="scenario-title">📋 Scenario</div>
+            <p>
+                During a mobile penetration testing engagement, the target Android application displays a forced update dialog
+                on startup: <strong>"Une nouvelle version est disponible sur Play Store"</strong> with a single button
+                <strong>"METTRE À JOUR"</strong> that redirects to the Play Store. The dialog is not dismissable — there is no
+                close button and tapping outside does nothing. This blocks all access to the application's functionality.
+            </p>
+        </div>
+
+        <div class="warning">
+            This technique is for authorized penetration testing only. Always ensure you have written authorization before testing any application.
+        </div>
+
+        <!-- SECTION 1 -->
+        <h2 id="problem">The Problem</h2>
+
+        <p>
+            Many mobile applications implement a <strong>forced update mechanism</strong> that compares the installed
+            app version against the latest version available on the Play Store (or a backend API). If the installed
+            version is outdated, the app shows a modal dialog that cannot be dismissed, effectively preventing the
+            user — or in our case, the pentester — from accessing the application.
+        </p>
+
+        <p>
+            During a mobile pentest, we often work with an older or patched version of the APK (e.g., after SSL
+            pinning bypass with <code>apk-mitm</code>). The patched APK will almost always trigger this check
+            since it no longer matches the Play Store version.
+        </p>
+
+        <!-- SECTION 2 -->
+        <h2 id="how-it-works">How Forced Updates Work</h2>
+
+        <p>Typically, the app performs one of these checks on startup:</p>
+
+        <ol>
+            <li><strong>Play Store API check</strong> — queries Google Play for the latest version number</li>
+            <li><strong>Backend API check</strong> — calls a custom endpoint like <code>/api/version/check</code></li>
+            <li><strong>Firebase Remote Config</strong> — reads a minimum version from Firebase</li>
+            <li><strong>In-App Updates API</strong> — uses Google's official <code>AppUpdateManager</code></li>
+        </ol>
+
+        <p>
+            If the installed version is lower than the required version, the app creates an <code>AlertDialog</code>
+            (or a custom dialog) with <code>setCancelable(false)</code>, making it impossible to dismiss.
+        </p>
+
+        <!-- SECTION 3: METHOD 1 -->
+        <h2 id="method1">Method 1: Hooking Dialog.show() — The Quick Win</h2>
+
+        <p>
+            The fastest approach is to simply <strong>prevent any dialog from appearing</strong> by hooking
+            the <code>Dialog.show()</code> method in Android's framework.
+        </p>
+
+        <div class="step-box">
+            <div class="step-header">
+                <div class="step-num">1</div>
+                <div class="step-title">Create the Frida script</div>
+            </div>
+            <div class="step-body">
+                <p>Save this as <code>bypass-update.js</code>:</p>
+                <pre data-lang="javascript"><code>Java.perform(function() {
+    // Hook AlertDialog.show() to prevent it from displaying
+    var AlertDialog = Java.use('android.app.AlertDialog');
+    var Dialog = Java.use('android.app.Dialog');
+
+    Dialog.show.implementation = function() {
+        console.log("[*] Dialog blocked — forced update bypassed");
+        // Simply don't call the original show()
+    };
+
+    console.log("[+] Update dialog bypass loaded");
+});</code></pre>
+            </div>
+        </div>
+
+        <div class="step-box">
+            <div class="step-header">
+                <div class="step-num">2</div>
+                <div class="step-title">Run with Frida</div>
+            </div>
+            <div class="step-body">
+                <pre data-lang="bash"><code>frida -U -f com.target.app -l bypass-update.js</code></pre>
+            </div>
+        </div>
+
+        <div class="step-box">
+            <div class="step-header">
+                <div class="step-num">3</div>
+                <div class="step-title">Verify the bypass</div>
+            </div>
+            <div class="step-body">
+                <p>In the Frida console, you should see:</p>
+                <pre data-lang="bash"><code>[+] Update dialog bypass loaded
+[*] Dialog blocked — forced update bypassed
+[*] Dialog blocked — forced update bypassed</code></pre>
+                <p>The app should now load normally without showing the update dialog.</p>
+            </div>
+        </div>
+
+        <div class="success">
+            This method works for most apps that use standard Android <code>AlertDialog</code>. It's quick, clean, and non-destructive.
+        </div>
+
+        <div class="note">
+            If the app uses a custom dialog library (e.g., Material Dialogs, a custom View), this hook may not catch it.
+            In that case, use Method 2 or 3 below.
+        </div>
+
+        <!-- SECTION 4: METHOD 2 -->
+        <h2 id="method2">Method 2: Blocking the Version Check Request</h2>
+
+        <p>
+            Instead of blocking the dialog, we can block the <strong>network request</strong> that fetches the
+            latest version. Without a response, the app can't determine if an update is needed.
+        </p>
+
+        <pre data-lang="javascript"><code>Java.perform(function() {
+    var URL = Java.use('java.net.URL');
+
+    URL.openConnection.overload().implementation = function() {
+        var url = this.toString();
+
+        if (url.includes("update") ||
+            url.includes("version") ||
+            url.includes("force") ||
+            url.includes("play.google")) {
+            console.log("[*] Blocked version check: " + url);
+            throw Java.use('java.io.IOException').$new("blocked");
+        }
+
+        return this.openConnection();
+    };
+
+    console.log("[+] Version check network block loaded");
+});</code></pre>
+
+        <!-- SECTION 5: METHOD 3 -->
+        <h2 id="method3">Method 3: Spoofing the App Version</h2>
+
+        <p>
+            Another approach is to <strong>fake the installed version</strong> so the app thinks it's already
+            up to date. We hook <code>PackageInfo</code> to return a very high version number.
+        </p>
+
+        <pre data-lang="javascript"><code>Java.perform(function() {
+    var PackageManager = Java.use('android.app.ApplicationPackageManager');
+
+    PackageManager.getPackageInfo.overload(
+        'java.lang.String', 'int'
+    ).implementation = function(pkg, flags) {
+        var info = this.getPackageInfo(pkg, flags);
+
+        // Spoof to very high version
+        info.versionName.value = "99.99.99";
+        info.versionCode.value = 999999;
+
+        console.log("[*] Spoofed version for: " + pkg +
+                    " → 99.99.99 (code: 999999)");
+        return info;
+    };
+
+    console.log("[+] Version spoof loaded");
+});</code></pre>
+
+        <!-- SECTION 6: METHOD 4 -->
+        <h2 id="method4">Method 4: APK Patching (Permanent Fix)</h2>
+
+        <p>
+            If you need a <strong>permanent bypass</strong> that doesn't require Frida running, you can
+            patch the APK directly by finding and modifying the update check logic in the smali code.
+        </p>
+
+        <h3>Step 1: Find the update check</h3>
+        <pre data-lang="bash"><code># Decompile the APK
+apktool d target.apk -o source
+
+# Search for update-related strings
+grep -rn "nouvelle version\|METTRE.*JOUR\|forceUpdate\|versionCheck\|updateRequired" \
+  source/smali/ source/res/</code></pre>
+
+        <h3>Step 2: Identify the method</h3>
+        <p>
+            Look for the class that creates the dialog. Common patterns in smali:
+        </p>
+        <pre data-lang="smali"><code># Look for setCancelable(false) near version check
+invoke-virtual {v0, v1}, Landroid/app/AlertDialog$Builder;->setCancelable(Z)
+
+# Or look for the update string resource
+const-string v1, "Une nouvelle version"</code></pre>
+
+        <h3>Step 3: Patch the condition</h3>
+        <pre data-lang="smali"><code># Change the comparison from "if not equal" to "if equal"
+# Before (shows dialog when version is old):
+if-ne v0, v1, :show_update_dialog
+
+# After (never shows dialog):
+if-eq v0, v1, :show_update_dialog
+
+# Or simply make the method return immediately:
+.method public checkForUpdate()V
+    .locals 0
+    return-void
+.end method</code></pre>
+
+        <h3>Step 4: Rebuild and sign</h3>
+        <pre data-lang="bash"><code>apktool b source -o patched.apk
+
+keytool -genkey -v -keystore test.keystore -alias test \
+  -keyalg RSA -keysize 2048 -validity 10000 \
+  -storepass password -keypass password -dname "CN=test"
+
+apksigner sign --ks test.keystore --ks-pass pass:password patched.apk
+
+adb install patched.apk</code></pre>
+
+        <!-- SECTION 7: METHOD 5 -->
+        <h2 id="method5">Method 5: Network-Level Block</h2>
+
+        <p>
+            The simplest approach — just block the device from reaching Play Store APIs entirely:
+        </p>
+
+        <pre data-lang="bash"><code># Block Play Store version check endpoints
+adb shell iptables -A OUTPUT -d play.googleapis.com -j DROP
+adb shell iptables -A OUTPUT -d android.clients.google.com -j DROP
+
+# To restore later:
+adb shell iptables -D OUTPUT -d play.googleapis.com -j DROP
+adb shell iptables -D OUTPUT -d android.clients.google.com -j DROP</code></pre>
+
+        <div class="note">
+            This only works if the app checks the Play Store directly. If it uses a custom backend API for version checking, you'll need to identify and block that specific endpoint instead, or use Burp Suite to intercept and modify the response.
+        </div>
+
+        <!-- RESULTS -->
+        <h2 id="results">Results</h2>
+
+        <div class="compare">
+            <h3>Screenshots</h3>
+<p><strong>Before — Forced update dialog blocking access:</strong></p>
+<img src="/blog/posts/images/update-dialog-before.png" alt="Forced update dialog">
+
+<p><strong>After — Dialog blocked, full access to app:</strong></p>
+<img src="/blog/posts/images/update-dialog-after.png" alt="Frida bypass result">
+        </div>
+
+        <p>
+            Using <strong>Method 1</strong> (Dialog hook), Frida successfully intercepted two
+            <code>Dialog.show()</code> calls and prevented them from displaying. The application loaded
+            normally, showing the login screen with "Accéder à mes comptes" — full access restored.
+        </p>
+
+        <!-- TAKEAWAYS -->
+        <h2 id="takeaways">Key Takeaways</h2>
+
+        <p>
+            When encountering forced update dialogs during mobile pentests, try the methods in this order:
+        </p>
+
+        <ol>
+            <li><strong>Dialog hook</strong> (Method 1) — fastest, works in most cases</li>
+            <li><strong>Version spoof</strong> (Method 3) — if the app checks version internally</li>
+            <li><strong>Network block</strong> (Method 5) — if the app checks Play Store</li>
+            <li><strong>Request block</strong> (Method 2) — if you can identify the check endpoint</li>
+            <li><strong>APK patch</strong> (Method 4) — permanent fix, but more effort</li>
+        </ol>
+
+        <blockquote>
+            From a security perspective, forced update mechanisms are a good practice — they ensure users
+            run patched versions. However, the implementation should not rely solely on client-side checks,
+            as demonstrated here. Server-side version enforcement on API calls is the more robust approach.
+        </blockquote>
+
+        <div class="note">
+            You can combine this bypass with SSL pinning bypass for a complete mobile pentest setup.
+            Check out my <a href="/blog/posts/ssl-pinning-bypass.html">SSL Pinning Bypass Guide</a> for the full workflow.
+        </div>
+
+    </div>
+
+    <!-- POST NAV -->
+    <div class="post-nav">
+        <a href="/blog/">← All posts</a>
+        <a href="/blog/posts/ssl-pinning-bypass.html">Next: SSL Pinning Bypass →</a>
+    </div>
+</article>
+
+<!-- FOOTER -->
+<footer>
+    <p>Designed by <span class="a">4mr</span> · Red Team Operator · Rabat, Morocco</p>
+</footer>
+
+</body>
+</html>
